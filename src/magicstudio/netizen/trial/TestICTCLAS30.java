@@ -5,6 +5,8 @@ import ICTCLAS.I3S.AC.ICTCLAS30;
 import java.util.*;
 import java.io.*;
 
+import magicstudio.netizen.util.SmartParser;
+
 class Result {
     int start; //start position,词语在输入句子中的开始位置
     int length; //length,词语的长度
@@ -20,29 +22,32 @@ class Result {
 public class TestICTCLAS30 {
 
     public static void main(String[] args) throws Exception {
-        try {
-            String sInput = "ICTCLAS在国内973专家组组织的评测中活动获得了第一名，在第一届国际中文处理研究机构SigHan组织的评测中都获得了多项第一名。";
+        String sInput = "ICTCLAS在国内973专家组组织的评测中活动获得了第一名，在第一届国际中文处理研究机构SigHan组织的评测中都获得了多项第一名。";
 
-            //分词
-            Split(sInput);
+        //分词
+        //Split(sInput);
 
-            //关键词提取
-            KeyExtract(sInput);
+        //关键词提取
+        //KeyExtract(sInput);
 
-            //指纹提取
-            FingerPrint(sInput);
+        //指纹提取
+        //FingerPrint(sInput);
+
+        SmartParser smartParser = new SmartParser();
+        System.out.println(smartParser.splitRaw(sInput));
+        for (SmartParser.Term term : smartParser.splitTerms(sInput)) {
+        	System.out.println(term.toString());
         }
-        catch (Exception ex) {
+        for (SmartParser.Term term : smartParser.extractTerms(sInput)) {
+        	System.out.println(term.toString());
         }
-
-
     }
 
     public static void Split(String sInput) {
         try {
             ICTCLAS30 testICTCLAS30 = new ICTCLAS30();
 
-            String argu = ".";
+            String argu = "D:\\Work\\ictclas2009\\windows_JNI_32\\api";
             if (testICTCLAS30.ICTCLAS_Init(argu.getBytes("GB2312")) == false) {
                 System.out.println("Init Fail!");
                 return;
@@ -56,7 +61,7 @@ public class TestICTCLAS30 {
                    2			北大二级标注集
                    3			北大一级标注集
            */
-            testICTCLAS30.ICTCLAS_SetPOSmap(2);
+            testICTCLAS30.ICTCLAS_SetPOSmap(1);
 
             //导入用户词典前
             byte nativeBytes[] = testICTCLAS30.ICTCLAS_ParagraphProcess(sInput.getBytes("GB2312"), 1);
@@ -65,7 +70,7 @@ public class TestICTCLAS30 {
             System.out.println("未导入用户词典： " + nativeStr);
 
             //导入用户词典
-            String sUserDict = "userdic.txt";
+            String sUserDict = argu+'\\'+"userdic.txt";
             int nCount = testICTCLAS30.ICTCLAS_ImportUserDict(sUserDict.getBytes("GB2312"));
             testICTCLAS30.ICTCLAS_SaveTheUsrDic();//保存用户词典
             System.out.println("导入个用户词： " + nCount);
@@ -104,7 +109,7 @@ public class TestICTCLAS30 {
 
             ICTCLAS30 testICTCLAS30 = new ICTCLAS30();
 
-            String argu = ".";
+            String argu = "D:\\Work\\ictclas2009\\windows_JNI_32\\api";
             if (testICTCLAS30.ICTCLAS_Init(argu.getBytes("GB2312")) == false) {
                 System.out.println("Init Fail!");
                 return;
