@@ -36,6 +36,24 @@ TAG POS=1 TYPE=A ATTR=TXT:обр╩рЁ"""
     script += article_t.format(pos)
   script += list_next
   print script
+  
+  
+# remove the leading/trailing double quotes of the URL file  
+def cleanup_url_file():
+  f = open("D:\\Download\\urls.txt", 'r')
+  out = open("D:\\Download\\urls-clean.txt", 'w')
+  for line in f:
+    line = line.strip('"\n')
+    if line == "#EANF#":
+      continue
+    print line
+    out.write(line)
+    out.write('\n')
+  f.close()
+  out.close()
+
+
 
 if __name__ == '__main__':
-  tianya_next_urls_simple()
+  cleanup_url_file()
+  
