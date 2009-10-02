@@ -59,7 +59,7 @@ def tianya_news_to_xml(pathfrom, pathto):
     end = None
   doc = doc[start:end]
   soup = BeautifulSoup(''.join(doc))
-  
+
   # start of xml
   out = '<thread>'
   
@@ -71,12 +71,17 @@ def tianya_news_to_xml(pathfrom, pathto):
   tagline = soup.find('table', id='firstAuthor')
   s = ''.join([filter_str(a.strip()) for a in tagline.findAll(text=True)])
   m = re.search(u"作者：(.+?)提交日期：(.+?)访问：(.+?)回复：(.+)", s)
-  firstauthor = filter_str(m.group(1)).strip()
-  firsttime = filter_str(m.group(2)).strip()
+  if m == None:
+    m = re.search(u"作者：(.+?)提交日期：(.+)", s)
+  fields = m.groups()
+  firstauthor = filter_str(fields[0]).strip()
+  firsttime = filter_str(fields[1]).strip()
   out += '<firstauthor>' + firstauthor + '</firstauthor>'
   out += '<firsttime>' + firsttime + '</firsttime>'
-  out += '<visits>' + m.group(3).strip() + '</visits>'
-  out += '<responses>' + m.group(4).strip() + '</responses>'
+  if len(fields)>2:
+    out += '<visits>' + fields[2].strip() + '</visits>'
+  if len(fields)>3:
+    out += '<responses>' + fields[3].strip() + '</responses>'
   
   # same links
   links = soup.findAll('a', attrs={'class':'page_numb'})
@@ -137,10 +142,26 @@ def tianya_news_transform_folder():
         errfile.write(str(num)+'\n')
         errfile.flush()
   errfile.close()
+  
+
+def tianya_news_transform_err():
+  errfile = open("N:\\Download\\err.txt", 'r')
+  count = 0
+  for num in errfile:
+    num = num.strip()
+    print num
+    if num in ('100229'):
+      continue
+    if num != None:
+      #try:
+        tianya_news_to_xml("N:\\Download\\tianya-news3\\"+num+".shtml", "N:\\Download\\output_err\\"+num+".xml")
+      #except:
+      #  print num
+  errfile.close()
 
 
 if __name__ == '__main__':
   #sys.setdefaultencoding("utf-8")
   #test_bsoup()
   #tianya_news_to_xml("143900.shtml", 'out.xml')
-  tianya_news_transform_folder()
+  tianya_news_transform_err()
