@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.Arrays;
 
 import ICTCLAS.I3S.AC.ICTCLAS30;
 
@@ -71,6 +72,9 @@ public class SmartParser {
 		}
 	}
 	
+	/**
+	 * Split a string, and return the splited string in a string format.
+	 */
 	public String splitRaw(String input) {
 		byte[] result = ictclasInstance.ICTCLAS_ParagraphProcess(input.getBytes(defaultEncoding), 1);
 		return new String(result, defaultEncoding);
@@ -95,19 +99,22 @@ public class SmartParser {
 			this.term = term;
 			this.pos = pos;
 		}
-		public String getTerm() {
-			return term;
-		}
-		public String getPos() {
-			return pos;
-		}
+		public String getTerm() { return term; }
+		public String getPos() { return pos; }
+		public int getStart() { return start; }
+		public int getWordId() { return wordId; }
+		public int getWeight() { return weight; }
 		@Override
 		public String toString() {
 			return "<"+term+", "+pos+">";
 		}
 	}
 	
-	// only return the simple term.
+	/**
+	 * Split the string, and return a list of terms. Only the term and its type (pos) is returned.
+	 * TODO: add code that populate "start", "length".
+	 * We don't have the exact position, but we do have the order.
+	 */
 	public List<Term> splitTerms(String input) {
 		List<Term> list = new ArrayList<Term>();
 		Pattern pattern = Pattern.compile("(.+?)/([a-zA-Z]+?)\\s+?", Pattern.MULTILINE);
@@ -119,8 +126,12 @@ public class SmartParser {
 		return list;
 	}
 	
-	// extract an array of keywords
-	public Term[] extractTerms(String input) throws IOException {
+	/**
+	 * extract a list of keywords from the string
+	 * doesn't follow the orders of appearance (?)
+	 * including aggregated value such as "weight"
+	 */
+	public List<Term> extractTerms(String input) throws IOException {
 		byte[] inputBytes = input.getBytes(defaultEncoding);
 		
 		//分词高级接口
@@ -183,7 +194,7 @@ public class SmartParser {
             resultArr[i].pos = ""+resultArr[i].posId;
         }
         dis.close();
-        return resultArr;
+        return Arrays.asList(resultArr);
 	}
 
 }

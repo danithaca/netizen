@@ -1,3 +1,7 @@
+/**
+ * Obsolete, new harvester is a combination of iMacros and Teleport pro
+ */
+
 package magicstudio.netizen.tianya;
 
 import org.apache.http.HttpEntity;

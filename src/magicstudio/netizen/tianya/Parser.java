@@ -1,3 +1,7 @@
+/**
+ * Obsolete, new scripts to parse HTML file is in py_scripts
+ */
+
 package magicstudio.netizen.tianya;
 
 import java.sql.*;
