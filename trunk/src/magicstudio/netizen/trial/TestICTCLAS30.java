@@ -35,11 +35,11 @@ public class TestICTCLAS30 {
 
         SmartParser smartParser = new SmartParser();
         System.out.println(smartParser.splitRaw(sInput));
-        for (SmartParser.Term term : smartParser.splitTerms(sInput)) {
+        /*for (SmartParser.Term term : smartParser.splitTerms(sInput)) {
         	System.out.println(term.toString());
-        }
+        }*/
         for (SmartParser.Term term : smartParser.extractTerms(sInput)) {
-        	System.out.println(term.toString());
+        	System.out.println(term.getTerm() + term.getWeight());
         }
     }
 

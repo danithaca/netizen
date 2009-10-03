@@ -1,3 +1,7 @@
+/**
+ * Obsolete, new code would be Groovy scripts (if to use Java), or Python for general tasks
+ */
+
 package magicstudio.netizen.tianya;
 
 import org.apache.commons.dbcp.BasicDataSource;
