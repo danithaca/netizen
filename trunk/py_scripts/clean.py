@@ -1,53 +1,25 @@
 # -*- coding: GBK -*-
 from BeautifulSoup import BeautifulSoup, BeautifulStoneSoup
+from xml.dom.minidom import Document
 import re, codecs, sys, os
 
 def filter_str(str):
+  RE_XML_ILLEGAL = u'([\u0000-\u0008\u000b-\u000c\u000e-\u001f\ufffe-\uffff])' + \
+                 u'|' + \
+                 u'([%s-%s][^%s-%s])|([^%s-%s][%s-%s])|([%s-%s]$)|(^[%s-%s])' % \
+                  (unichr(0xd800),unichr(0xdbff),unichr(0xdc00),unichr(0xdfff),
+                   unichr(0xd800),unichr(0xdbff),unichr(0xdc00),unichr(0xdfff),
+                   unichr(0xd800),unichr(0xdbff),unichr(0xdc00),unichr(0xdfff))
+  regex = re.compile(RE_XML_ILLEGAL)
+  for match in regex.finditer(str):
+      str = str[:match.start()] + "?" + str[match.end():]
   return str.replace('&nbsp;', ' ')
-
-def test_bsoup():
-  #f = open("143900.shtml", 'r')
-  f = open("143953.shtml", 'r')
-  doc = f.read().decode('gbk', 'ignore').encode('utf-8', 'ignore')
-  start = doc.find('<!-- google_ad_section_start -->')
-  if start == -1:
-    start = 0
-  end = doc.find('<!-- google_ad_section_end -->')
-  if end == -1:
-    end = None
-  doc = doc[start:end]
-  #print doc
-  soup = BeautifulSoup(''.join(doc))
-  
-  
-  title = soup.find('div', id='adsp_content_title_banner')
-  print ''.join(map(lambda a: a.strip(), title.findAll(text=True)))
-  
-  tagline = soup.find('table', id='firstAuthor')
-  print ''.join(map(lambda a: a.strip(), tagline.findAll(text=True)))
-  #print soup.prettify().decode('utf-8')
-  
-  content = soup.find('div', id='pContentDiv').first()
-  #print ''.join(map(lambda a: a.strip()+'\n', content.findAll(text=True)))
-  for e in content.childGenerator():
-    #print '######'
-    if isinstance(e, unicode):
-      s = e.strip()
-      if s != '':
-        print s
-    else:
-      s = ''.join([a.strip()+' ' for a in e.findAll(text=True)])
-      s.strip()
-      print '>>>===', s
-  
-  links = soup.findAll('a', attrs={'class':'page_numb'})
-  print [a['href'] for a in links]
 
 
 # transform html to xml
 def tianya_news_to_xml(pathfrom, pathto):
   ffrom = open(pathfrom, 'r')
-  out = ''
+  out = Document()
   
   # prepare data
   doc = ffrom.read().decode('gbk', 'ignore').encode('utf-8', 'ignore')
@@ -61,11 +33,12 @@ def tianya_news_to_xml(pathfrom, pathto):
   soup = BeautifulSoup(''.join(doc))
 
   # start of xml
-  out = '<thread>'
+  out_thread = out.createElement("thread")
+  out.appendChild(out_thread)
   
   # title
   title = soup.find('div', id='adsp_content_title_banner')
-  out += '<title>' + ''.join([filter_str(a.strip()) for a in title.findAll(text=True)]) + '</title>'
+  out_thread.setAttribute('title', ''.join([filter_str(a.strip()) for a in title.findAll(text=True)]))
   
   # tagline
   tagline = soup.find('table', id='firstAuthor')
@@ -76,49 +49,59 @@ def tianya_news_to_xml(pathfrom, pathto):
   fields = m.groups()
   firstauthor = filter_str(fields[0]).strip()
   firsttime = filter_str(fields[1]).strip()
-  out += '<firstauthor>' + firstauthor + '</firstauthor>'
-  out += '<firsttime>' + firsttime + '</firsttime>'
+  out_thread.setAttribute('firstauthor', firstauthor)
+  out_thread.setAttribute('firsttime', firsttime)
   if len(fields)>2:
-    out += '<visits>' + fields[2].strip() + '</visits>'
+    out_thread.setAttribute('visits', fields[2].strip())
   if len(fields)>3:
-    out += '<responses>' + fields[3].strip() + '</responses>'
+    out_thread.setAttribute('responses', fields[3].strip())
   
   # same links
   links = soup.findAll('a', attrs={'class':'page_numb'})
   ids = []
   for a in links:
     ids.append(re.match("http://www.tianya.cn/publicforum/content/news/1/(\\d+)[.]shtml", a['href']).group(1))
-  out += '<samelinks>' + ','.join(ids) + '</samelinks>'
+  if ids:
+    out_thread.setAttribute('samelinks', ','.join(ids))
   
   # process post contents
   content = soup.find('div', id='pContentDiv').first()
-  out += '<post><author>' + firstauthor + '</author><time>' + firsttime + '</time><content>'
+  out_post = out.createElement("post")
+  out_post.setAttribute('author', firstauthor)
+  out_post.setAttribute('time', firsttime)
+  content_str = ''
   for e in content.childGenerator():
     if isinstance(e, unicode):
       s = filter_str(e).strip()
       if s != '':
-        out += s
+        content_str += s
     else:
       s = ' '.join([filter_str(a.strip()) for a in e.findAll(text=True)])
       s = s.strip()
       if s == '':
-        out += '#NEXTLINE\n'
+        content_str += '#NEXTLINE\n'
       else:
         m = re.match(u"作者：(.+?)回复日期：(.+)".decode('gbk'), s)
         if m != None:
           # first close <post>, then start new post
-          out += '</content></post><post><author>' + filter_str(m.group(1)).strip() + '</author><time>' + filter_str(m.group(2)).strip() + '</time><content>'
+          out_content = out.createTextNode(content_str)
+          out_post.appendChild(out_content)
+          out_thread.appendChild(out_post)
+          out_post = out.createElement("post")
+          out_post.setAttribute('author', filter_str(m.group(1)).strip())
+          out_post.setAttribute('time', filter_str(m.group(2)).strip())
+          content_str = ''
         else:
-          out += s + '#NEXTLINE\n'
+          content_str += s + '#NEXTLINE\n'
           
   # close xml
-  out += '</content></post></thread>'
+  out_content = out.createTextNode(content_str)
+  out_post.appendChild(out_content)
+  out_thread.appendChild(out_post)
   
   # prettify and output
-  outsoup = BeautifulStoneSoup(out)
-  s = outsoup.prettify()
   fto = open(pathto, 'w')
-  fto.write(s)
+  fto.write(out.toprettyxml(indent="  ", encoding='utf-8'))
   ffrom.close()
   fto.close()
   
