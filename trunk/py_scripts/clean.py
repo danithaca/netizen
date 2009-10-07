@@ -11,8 +11,7 @@ def filter_str(str):
                    unichr(0xd800),unichr(0xdbff),unichr(0xdc00),unichr(0xdfff),
                    unichr(0xd800),unichr(0xdbff),unichr(0xdc00),unichr(0xdfff))
   regex = re.compile(RE_XML_ILLEGAL)
-  for match in regex.finditer(str):
-      str = str[:match.start()] + "?" + str[match.end():]
+  re.sub(regex, '', str)
   return str.replace('&nbsp;', ' ')
 
 

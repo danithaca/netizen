@@ -12,7 +12,9 @@ XmlToRaw('D:\\Download\\xml-news5', 'D:\\Download')
 def XmlToRaw(srcPath, dstPath) {
 	srcDir = new File(srcPath)
 	threadFile = new File("${dstPath}\\thread.raw")
+	threadFile.write(['index', 'title', 'author', 'time', 'visits', 'responses'].join('\t')+'\n')
 	postFile = new File("${dstPath}\\post.raw")
+	postFile.write(['index', 'author', 'time'].join('\t')+'\n')
 	//errFile = new File("${dstPath}\\_err.txt")
 	
 	def parser = new XmlParser(new Parser())
@@ -26,7 +28,7 @@ def XmlToRaw(srcPath, dstPath) {
 	for (xmlInput in srcDir.listFiles()) {	
 		def index = null
 		try {
-			index = (xmlInput.getName() =~ /(\d+).xml$/)[0][1]
+			index = ((xmlInput.getName() =~ /(\d+).xml$/)[0][1]).toInteger()
 		} catch (Exception e) {
 			println "Skip file ${xmlInput.getName()}"
 			continue
@@ -40,11 +42,19 @@ def XmlToRaw(srcPath, dstPath) {
 		def visits = (s = thread.'@visits') ? s.toInteger() : 0
 		def responses = (s = thread.'@responses') ? s.toInteger() : 0
 		def samelinks = (s = thread.'@samelinks') ? s.split(',') : null
-		if (samelinks) {println "Has links!!!"}
+		//if (samelinks) {println "Has links!!!"}
+		if (samelinks!=null && samelinks.min()<index {
+			index = samelinks.min() // then we just use the smallest post
+		} else {
+			row = [index, title.replaceAll('"', "'"), firstauthor, firsttime.format('yyyy-MM-dd HH:mm:ss'), visits, responses].join('\t')
+			threadFile.write(row+'\n')
+		}
 			
 		for (post in thread.post) {
 			def author = post.'@author'
 			def time = post.'@time'
+			row = [index, author, time.format('yyyy-MM-dd HH:mm:ss')].join('\t')
+			postFile.write(row+'\n')
 		}
 	}
 }
