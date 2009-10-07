@@ -2,8 +2,7 @@ package magicstudio.netizen.tianya
 
 
 //XmlToTxt('D:\\Download\\xml-news5', 'D:\\Download\\txt-news5')
-XmlToRaw('D:\\Download\\xml-news5', 'D:\\Download')
-//XmlToRaw('N:\\Download\\xml-news3', 'N:\\Download')
+XmlToRaw('C:\\Download\\xml-news5', 'C:\\Download')
 
 ////////////////// functions //////////////
 
@@ -13,7 +12,6 @@ def XmlToRaw(srcPath, dstPath) {
 	threadFile.write(['index', 'title', 'author', 'time', 'visits', 'responses'].join('\t')+'\n')
 	postFile = new File("${dstPath}\\post.raw")
 	postFile.write(['index', 'author', 'time'].join('\t')+'\n')
-	//errFile = new File("${dstPath}\\_err.txt")
 	
 	def parser = new XmlParser()
 	// TagSoup parser doesn't work very well.
@@ -23,38 +21,46 @@ def XmlToRaw(srcPath, dstPath) {
 	parser.setTrimWhitespace(true)
 	
 	count = 0
+	errMsg = ''
 	for (xmlInput in srcDir.listFiles()) {	
 		def index = null
 		try {
-			index = ((xmlInput.getName() =~ /(\d+).xml$/)[0][1]).toInteger()
-		} catch (Exception e) {
-			println "Skip file ${xmlInput.getName()}"
-			continue
-		}
-		println "Processing ${count++}: ${index}"
-		def thread = parser.parse(xmlInput)
-		
-		def title = stripXML(thread.'@title')
-		def firsttime = parseDate(thread.'@firsttime')
-		def firstauthor = stripXML(thread.'@firstauthor')
-		def visits = (s = thread.'@visits') ? s.toInteger() : 0
-		def responses = (s = thread.'@responses') ? s.toInteger() : 0
-		def samelinks = (s = thread.'@samelinks') ? s.split(',').collect({it.toInteger()}) : null
-		//if (samelinks) {println "Has links!!!"}
-		if (samelinks!=null && samelinks.min()<index) {
-			index = samelinks.min() // then we just use the smallest post
-		} else {
-			row = [index, '"'+title.replace('"', '\'')+'"', "\"${firstauthor}\"", "\"${firsttime.format('yyyy-MM-dd HH:mm:ss')}\"", visits, responses].join('\t')
-			threadFile.append(row+'\n')
-		}
+			try {
+				index = ((xmlInput.getName() =~ /(\d+).xml$/)[0][1]).toInteger()
+			} catch (Exception e) {
+				println "Skip file ${xmlInput.getName()}"
+				continue
+			}
+			println "Processing ${count++}: ${index}"
+			def thread = parser.parse(xmlInput)
 			
-		for (post in thread.post) {
-			def author = stripXML(post.'@author')
-			def time = parseDate(post.'@time')
-			row = [index, "\"${author}\"", "\"${time.format('yyyy-MM-dd HH:mm:ss')}\""].join('\t')
-			postFile.append(row+'\n')
+			def title = stripXML(thread.'@title')
+			def firsttime = parseDate(thread.'@firsttime')
+			def firstauthor = stripXML(thread.'@firstauthor')
+			def visits = (s = thread.'@visits') ? s.toInteger() : 0
+			def responses = (s = thread.'@responses') ? s.toInteger() : 0
+			def samelinks = (s = thread.'@samelinks') ? s.split(',').collect({it.toInteger()}) : null
+			//if (samelinks) {println "Has links!!!"}
+			if (samelinks!=null && samelinks.min()<index) {
+				index = samelinks.min() // then we just use the smallest post
+			} else {
+				row = [index, '"'+title.replace('"', '\'')+'"', "\"${firstauthor}\"", "\"${firsttime.format('yyyy-MM-dd HH:mm:ss')}\"", visits, responses].join('\t')
+				threadFile.append(row+'\n')
+			}
+				
+			for (post in thread.post) {
+				def author = stripXML(post.'@author')
+				def time = parseDate(post.'@time')
+				row = [index, "\"${author}\"", "\"${time.format('yyyy-MM-dd HH:mm:ss')}\""].join('\t')
+				postFile.append(row+'\n')
+			}
+		} catch (Exception e) {
+			println "Error!"
+			errMsg += "${index}\n"
 		}
 	}
+	errFile = new File("${dstPath}\\_err.txt")
+	errFile.write(errMsg)
 }
 
 def XmlToTxt(srcPath, dstPath) {
@@ -106,8 +112,15 @@ def stripXML(str) {
 }
 
 def parseDate(str) {
-	m = str =~ /(\d{2,4}-\d{1,2}-\d{1,2}).+?(\d{1,2}:\d{1,2}:\d{1,2})/
-	return Date.parse('y-M-d H:m:s', "${m[0][1]} ${m[0][2]}")
+	pattern = ~/(\d{2,4}-\d{1,2}-\d{1,2}).+?(\d{1,2}:\d{1,2}:\d{1,2})/
+	m = pattern.matcher(str)
+	if (m.matches()) {
+		return Date.parse('y-M-d H:m:s', "${m[0][1]} ${m[0][2]}")
+	} else if (str ==~ /(\d{2,4}-\d{1,2}-\d{1,2})/) {
+		return Date.parse('y-M-d', str)
+	} else {
+		throw new RuntimeException("Can't parse.")
+	}
 }
 
 /**

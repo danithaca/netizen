@@ -1,5 +1,5 @@
 # -*- coding: GBK -*-
-from BeautifulSoup import BeautifulSoup, BeautifulStoneSoup
+from BeautifulSoup import BeautifulSoup, ICantBelieveItsBeautifulSoup
 from xml.dom.minidom import Document
 import re, codecs, sys, os
 
@@ -15,6 +15,14 @@ def filter_str(str):
   return str.replace('&nbsp;', ' ')
 
 
+def parse_date(str):
+  m = re.match('^(\d{2,4}-\d{1,2}-\d{1,2}).+?(\d{1,2}:\d{1,2}:\d{1,2})$', str)
+  if m == None:
+    raise RuntimeError("Invalid time format")
+  else:
+    str = m.groups()[0]+' '+m.groups()[1]
+  return str
+
 # transform html to xml
 def tianya_news_to_xml(pathfrom, pathto):
   ffrom = open(pathfrom, 'r')
@@ -29,7 +37,12 @@ def tianya_news_to_xml(pathfrom, pathto):
   if end == -1:
     end = None
   doc = doc[start:end]
-  soup = BeautifulSoup(''.join(doc))
+  
+  # init the soup parser
+  self_closing = ICantBelieveItsBeautifulSoup.SELF_CLOSING_TAGS
+  self_closing['b'] = None
+  self_closing['font'] = None
+  soup = ICantBelieveItsBeautifulSoup(''.join(doc), convertEntities=BeautifulSoup.ALL_ENTITIES, selfClosingTags=self_closing)
 
   # start of xml
   out_thread = out.createElement("thread")
@@ -42,17 +55,25 @@ def tianya_news_to_xml(pathfrom, pathto):
   # tagline
   tagline = soup.find('table', id='firstAuthor')
   s = ''.join([filter_str(a.strip()) for a in tagline.findAll(text=True)])
-  m = re.search(u"作者：(.+?)提交日期：(.+?)访问：(.+?)回复：(.+)", s)
+  # can't use \d for numbers..., maybe due to unicode??
+  # m = re.search(re.compile(u"作者：(.+?)提交日期：(.+?)访问：(\\d+?)回复：(\\d+?)", re.UNICODE), s)
+  m = re.search(re.compile(u"作者：(.+?)提交日期：(.+?)访问：(.+?)回复：(.+?)", re.UNICODE), s)
   if m == None:
     m = re.search(u"作者：(.+?)提交日期：(.+)", s)
   fields = m.groups()
   firstauthor = filter_str(fields[0]).strip()
   firsttime = filter_str(fields[1]).strip()
+  # validate date 'cause we can't do it earlier.
+  firsttime = parse_date(firsttime)
   out_thread.setAttribute('firstauthor', firstauthor)
   out_thread.setAttribute('firsttime', firsttime)
   if len(fields)>2:
+    if re.match('^-?\d+$', fields[2].strip())==None:
+      raise RuntimeError("Invalid visits number")
     out_thread.setAttribute('visits', fields[2].strip())
   if len(fields)>3:
+    if re.match('^-?\d+$', fields[3].strip())==None:
+      raise RuntimeError("Invalid responses number")
     out_thread.setAttribute('responses', fields[3].strip())
   
   # same links
@@ -61,7 +82,8 @@ def tianya_news_to_xml(pathfrom, pathto):
   for a in links:
     ids.append(re.match("http://www.tianya.cn/publicforum/content/news/1/(\\d+)[.]shtml", a['href']).group(1))
   if ids:
-    out_thread.setAttribute('samelinks', ','.join(ids))
+    # the map() function will ensure each id is a number
+    out_thread.setAttribute('samelinks', ','.join(map(int, ids)))
   
   # process post contents
   content = soup.find('div', id='pContentDiv').first()
@@ -88,7 +110,8 @@ def tianya_news_to_xml(pathfrom, pathto):
           out_thread.appendChild(out_post)
           out_post = out.createElement("post")
           out_post.setAttribute('author', filter_str(m.group(1)).strip())
-          out_post.setAttribute('time', filter_str(m.group(2)).strip())
+          posttime = parse_date(filter_str(m.group(2)).strip())
+          out_post.setAttribute('time', posttime)
           content_str = ''
         else:
           content_str += s + '#NEXTLINE\n'
@@ -126,7 +149,7 @@ def tianya_news_transform_folder(pathfrom, pathto):
   
 
 def tianya_news_transform_err():
-  errfile = open("D:\\Download\\xml-news5\\err.txt", 'r')
+  errfile = open("C:\\Download\\xml-news5\\err.txt", 'r')
   count = 0
   for num in errfile:
     num = num.strip()
@@ -135,7 +158,7 @@ def tianya_news_transform_err():
       continue
     if num != None:
       #try:
-        tianya_news_to_xml("D:\\Download\\tianya-news5\\"+num+".shtml", "D:\\Download\\output_err\\"+num+".xml")
+        tianya_news_to_xml("C:\\Download\\tianya-news5\\"+num+".shtml", "D:\\Download\\output_err\\"+num+".xml")
       #except:
       #  print num
   errfile.close()
@@ -144,6 +167,6 @@ def tianya_news_transform_err():
 if __name__ == '__main__':
   #sys.setdefaultencoding("utf-8")
   #test_bsoup()
-  #tianya_news_to_xml("143900.shtml", 'out.xml')
-  tianya_news_transform_folder("D:\\Download\\tianya-news5", "D:\\Download\\xml-news5")
+  tianya_news_to_xml("C:\\Download\\132086.shtml", 'C:\\Download\\out.xml')
+  #tianya_news_transform_folder("C:\\Download\\tianya-news5", "C:\\Download\\xml-news5-new")
   
