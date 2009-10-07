@@ -1,11 +1,9 @@
 package magicstudio.netizen.tianya
 
-import javax.xml.parsers.*
-import org.ccil.cowan.tagsoup.Parser;
-
 
 //XmlToTxt('D:\\Download\\xml-news5', 'D:\\Download\\txt-news5')
 XmlToRaw('D:\\Download\\xml-news5', 'D:\\Download')
+//XmlToRaw('N:\\Download\\xml-news3', 'N:\\Download')
 
 ////////////////// functions //////////////
 
@@ -17,7 +15,7 @@ def XmlToRaw(srcPath, dstPath) {
 	postFile.write(['index', 'author', 'time'].join('\t')+'\n')
 	//errFile = new File("${dstPath}\\_err.txt")
 	
-	def parser = new XmlParser(new Parser())
+	def parser = new XmlParser()
 	// TagSoup parser doesn't work very well.
 	//def parser = new XmlParser(new Parser())
 	parser.setFeature('http://xml.org/sax/features/unicode-normalization-checking', false)
@@ -41,27 +39,28 @@ def XmlToRaw(srcPath, dstPath) {
 		def firstauthor = stripXML(thread.'@firstauthor')
 		def visits = (s = thread.'@visits') ? s.toInteger() : 0
 		def responses = (s = thread.'@responses') ? s.toInteger() : 0
-		def samelinks = (s = thread.'@samelinks') ? s.split(',') : null
+		def samelinks = (s = thread.'@samelinks') ? s.split(',').collect({it.toInteger()}) : null
 		//if (samelinks) {println "Has links!!!"}
-		if (samelinks!=null && samelinks.min()<index {
+		if (samelinks!=null && samelinks.min()<index) {
 			index = samelinks.min() // then we just use the smallest post
 		} else {
-			row = [index, title.replaceAll('"', "'"), firstauthor, firsttime.format('yyyy-MM-dd HH:mm:ss'), visits, responses].join('\t')
-			threadFile.write(row+'\n')
+			row = [index, '"'+title.replace('"', '\'')+'"', "\"${firstauthor}\"", "\"${firsttime.format('yyyy-MM-dd HH:mm:ss')}\"", visits, responses].join('\t')
+			threadFile.append(row+'\n')
 		}
 			
 		for (post in thread.post) {
-			def author = post.'@author'
-			def time = post.'@time'
-			row = [index, author, time.format('yyyy-MM-dd HH:mm:ss')].join('\t')
-			postFile.write(row+'\n')
+			def author = stripXML(post.'@author')
+			def time = parseDate(post.'@time')
+			row = [index, "\"${author}\"", "\"${time.format('yyyy-MM-dd HH:mm:ss')}\""].join('\t')
+			postFile.append(row+'\n')
 		}
 	}
 }
 
 def XmlToTxt(srcPath, dstPath) {
 	srcDir = new File(srcPath)
-	//errFile = new File("${dstPath}\\_err.txt")
+	errFile = new File("${dstPath}\\_err.txt")
+	errFile.write("Start logging.")
 	count = 0
 	for (xmlInput in srcDir.listFiles()) {
 		println "Processing ${count++}"
@@ -94,7 +93,7 @@ def XmlToTxt(srcPath, dstPath) {
 		} catch (Exception e) {
 			println "ERROR: ${index}"
 			e.printStackTrace()
-			//errFile.write(index+'\n')
+			errFile.append(index+'\n')
 		}
 	}
 }

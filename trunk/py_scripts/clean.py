@@ -106,10 +106,9 @@ def tianya_news_to_xml(pathfrom, pathto):
   
   
 # transform shtml files in a direcotry to another directory.
-def tianya_news_transform_folder():
-  errfile = open("D:\\Download\\xml-news5\\err.txt", 'w')
-  basedir = "D:\\Download\\tianya-news5\\"
-  dir = os.listdir("D:\\Download\\tianya-news5\\")
+def tianya_news_transform_folder(pathfrom, pathto):
+  errfile = open(pathto+"\\_err.txt", 'w')
+  dir = os.listdir(pathfrom)
   count = 0
   for f in dir:
     count += 1
@@ -118,7 +117,7 @@ def tianya_news_transform_folder():
       print "Processing", f, "(%d / %d)" % (count, len(dir))
       num = num.group(1)
       try:
-        tianya_news_to_xml(basedir+f, "D:\\Download\\xml-news5\\"+str(num)+".xml")
+        tianya_news_to_xml(pathfrom+'\\'+f, pathto+'\\'+str(num)+".xml")
       except:
         print "!!! ERROR: ", f
         errfile.write(str(num)+'\n')
@@ -146,4 +145,5 @@ if __name__ == '__main__':
   #sys.setdefaultencoding("utf-8")
   #test_bsoup()
   #tianya_news_to_xml("143900.shtml", 'out.xml')
-  tianya_news_transform_folder()
+  tianya_news_transform_folder("D:\\Download\\tianya-news5", "D:\\Download\\xml-news5")
+  
