@@ -11,7 +11,9 @@ def filter_str(str):
                    unichr(0xd800),unichr(0xdbff),unichr(0xdc00),unichr(0xdfff),
                    unichr(0xd800),unichr(0xdbff),unichr(0xdc00),unichr(0xdfff))
   regex = re.compile(RE_XML_ILLEGAL)
-  re.sub(regex, '', str)
+  for match in regex.finditer(str):
+    str = str[:match.start()] + " " + str[match.end():]
+  # re.sub(regex, '', str) # don't know why this line doesn't work
   return str.replace('&nbsp;', ' ')
 
 
@@ -167,6 +169,6 @@ def tianya_news_transform_err():
 if __name__ == '__main__':
   #sys.setdefaultencoding("utf-8")
   #test_bsoup()
-  tianya_news_to_xml("C:\\Download\\132086.shtml", 'C:\\Download\\out.xml')
+  tianya_news_to_xml("C:\\Download\\132086.shtml", 'C:\\Download\\132086.xml')
   #tianya_news_transform_folder("C:\\Download\\tianya-news5", "C:\\Download\\xml-news5-new")
   
