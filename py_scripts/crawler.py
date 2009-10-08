@@ -42,8 +42,8 @@ def qiangguo_next_urls_simple():
 SET !EXTRACT_TEST_POPUP NO
 TAB T=1"""
   article_t = """
-TAG POS={0} TYPE=A ATTR=HREF:http://bbs.people.com.cn/postDetail.do?view=1&id=*&bid=2 EXTRACT=HREF
-SAVEAS TYPE=EXTRACT FOLDER=D:\Download FILE=depth2008-urls.txt"""
+TAG POS={0} TYPE=A ATTR=HREF:http://bbs.people.com.cn/postDetail.do?view=1&id=*&bid=1 EXTRACT=HREF
+SAVEAS TYPE=EXTRACT FOLDER=N:\Download FILE=qiangguo2008-urls.txt"""
   list_next = """
 TAG POS=2 TYPE=A ATTR=TXT:обрЁ"""
   for i in range(50):

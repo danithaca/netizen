@@ -1,7 +1,7 @@
 # -*- coding: GBK -*-
 from BeautifulSoup import BeautifulSoup, ICantBelieveItsBeautifulSoup
 from xml.dom.minidom import Document
-import re, codecs, sys, os
+import re, codecs, sys, os, traceback
 
 def filter_str(str):
   RE_XML_ILLEGAL = u'([\u0000-\u0008\u000b-\u000c\u000e-\u001f\ufffe-\uffff])' + \
@@ -41,10 +41,12 @@ def tianya_news_to_xml(pathfrom, pathto):
   doc = doc[start:end]
   
   # init the soup parser
-  self_closing = ICantBelieveItsBeautifulSoup.SELF_CLOSING_TAGS
+  self_closing = BeautifulSoup.SELF_CLOSING_TAGS
   self_closing['b'] = None
   self_closing['font'] = None
-  soup = ICantBelieveItsBeautifulSoup(''.join(doc), convertEntities=BeautifulSoup.ALL_ENTITIES, selfClosingTags=self_closing)
+  self_closing['color'] = None
+  soup = BeautifulSoup(''.join(doc), convertEntities=BeautifulSoup.ALL_ENTITIES, selfClosingTags=self_closing)
+  #soup = BeautifulSoup(''.join(doc))
 
   # start of xml
   out_thread = out.createElement("thread")
@@ -59,7 +61,7 @@ def tianya_news_to_xml(pathfrom, pathto):
   s = ''.join([filter_str(a.strip()) for a in tagline.findAll(text=True)])
   # can't use \d for numbers..., maybe due to unicode??
   # m = re.search(re.compile(u"作者：(.+?)提交日期：(.+?)访问：(\\d+?)回复：(\\d+?)", re.UNICODE), s)
-  m = re.search(re.compile(u"作者：(.+?)提交日期：(.+?)访问：(.+?)回复：(.+?)", re.UNICODE), s)
+  m = re.search(re.compile(u"作者：(.+?)提交日期：(.+?)访问：(.+?)回复：(.+)", re.UNICODE), s)
   if m == None:
     m = re.search(u"作者：(.+?)提交日期：(.+)", s)
   fields = m.groups()
@@ -85,7 +87,7 @@ def tianya_news_to_xml(pathfrom, pathto):
     ids.append(re.match("http://www.tianya.cn/publicforum/content/news/1/(\\d+)[.]shtml", a['href']).group(1))
   if ids:
     # the map() function will ensure each id is a number
-    out_thread.setAttribute('samelinks', ','.join(map(int, ids)))
+    out_thread.setAttribute('samelinks', ','.join(map(str, map(int, ids))))
   
   # process post contents
   content = soup.find('div', id='pContentDiv').first()
@@ -144,8 +146,9 @@ def tianya_news_transform_folder(pathfrom, pathto):
       try:
         tianya_news_to_xml(pathfrom+'\\'+f, pathto+'\\'+str(num)+".xml")
       except:
-        print "!!! ERROR: ", f
+        print "!!! ERROR: "
         errfile.write(str(num)+'\n')
+        traceback.print_tb(sys.exc_info()[2], file=errfile)
         errfile.flush()
   errfile.close()
   
@@ -165,10 +168,17 @@ def tianya_news_transform_err():
       #  print num
   errfile.close()
 
+def print_error_file():
+  f = open("C:\\Download\\news5-xml\\_err.txt", 'r')
+  for l in f:
+    if l[0]!=' ':
+      print l.strip()
+
 
 if __name__ == '__main__':
   #sys.setdefaultencoding("utf-8")
   #test_bsoup()
-  tianya_news_to_xml("C:\\Download\\132086.shtml", 'C:\\Download\\132086.xml')
-  #tianya_news_transform_folder("C:\\Download\\tianya-news5", "C:\\Download\\xml-news5-new")
+  #tianya_news_to_xml("C:\\Download\\tianya-news5\\100229.shtml", 'C:\\Download\\100229.xml')
+  #tianya_news_transform_folder("C:\\Download\\tianya-news5", "C:\\Download\\news5-xml")
+  print_error_file()
   
