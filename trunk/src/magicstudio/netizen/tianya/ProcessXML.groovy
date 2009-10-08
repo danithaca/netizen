@@ -1,17 +1,15 @@
 package magicstudio.netizen.tianya
 
-
-//XmlToTxt('D:\\Download\\xml-news5', 'D:\\Download\\txt-news5')
-XmlToRaw('C:\\Download\\xml-news5', 'C:\\Download')
+XmlToRawTxt('C:\\Download\\', 'C:\\Download', 'C:\\Download\\')
 
 ////////////////// functions //////////////
 
-def XmlToRaw(srcPath, dstPath) {
+def XmlToRawTxt(srcPath, rawPath, txtPath) {
 	srcDir = new File(srcPath)
-	threadFile = new File("${dstPath}\\thread.raw")
+	threadFile = new File("${rawPath}\\thread.raw")
 	threadFile.write(['index', 'title', 'author', 'time', 'visits', 'responses'].join('\t')+'\n')
-	postFile = new File("${dstPath}\\post.raw")
-	postFile.write(['index', 'author', 'time'].join('\t')+'\n')
+	postFile = new File("${rawPath}\\post.raw")
+	postFile.write(['index', 'author', 'time', 'size'].join('\t')+'\n')
 	
 	def parser = new XmlParser()
 	// TagSoup parser doesn't work very well.
@@ -33,6 +31,7 @@ def XmlToRaw(srcPath, dstPath) {
 			}
 			println "Processing ${count++}: ${index}"
 			def thread = parser.parse(xmlInput)
+			parser.setTrimWhitespace(true)
 			
 			def title = stripXML(thread.'@title')
 			def firsttime = parseDate(thread.'@firsttime')
@@ -47,19 +46,26 @@ def XmlToRaw(srcPath, dstPath) {
 				row = [index, '"'+title.replace('"', '\'')+'"', "\"${firstauthor}\"", "\"${firsttime.format('yyyy-MM-dd HH:mm:ss')}\"", visits, responses].join('\t')
 				threadFile.append(row+'\n')
 			}
+			
+			// create/reuse text file
+			def txtFile = new File("${txtPath}\\${firsttime.format('yyyyMMdd')}-${title.replaceAll(~/\p{Punct}/, '')}.txt")
 				
 			for (post in thread.post) {
 				def author = stripXML(post.'@author')
 				def time = parseDate(post.'@time')
-				row = [index, "\"${author}\"", "\"${time.format('yyyy-MM-dd HH:mm:ss')}\""].join('\t')
-				postFile.append(row+'\n')
+				def content = post.text()
+				row = [index, "\"${author}\"", "\"${time.format('yyyy-MM-dd HH:mm:ss')}\"", content.size()]
+				postFile.append(row.join('\t')+'\n')
+				txtFile.append('>>>>>>>>>> '+row[1..2].join('\t')+'\n\n')
+				txtFile.append(stripXML(content)+'\n\n')
 			}
 		} catch (Exception e) {
 			println "Error!"
+			e.printStackTrace()
 			errMsg += "${index}\n"
 		}
 	}
-	errFile = new File("${dstPath}\\_err.txt")
+	errFile = new File("${rawPath}\\_err.txt")
 	errFile.write(errMsg)
 }
 
