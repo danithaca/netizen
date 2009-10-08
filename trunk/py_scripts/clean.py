@@ -26,6 +26,7 @@ def parse_date(str):
   return str
 
 # transform html to xml
+# TODO: recursively add samelink files.
 def tianya_news_to_xml(pathfrom, pathto):
   ffrom = open(pathfrom, 'r')
   out = Document()
@@ -95,6 +96,8 @@ def tianya_news_to_xml(pathfrom, pathto):
   out_post.setAttribute('author', firstauthor)
   out_post.setAttribute('time', firsttime)
   content_str = ''
+  
+  # TODO: if only one post has problem, still add the post?
   for e in content.childGenerator():
     if isinstance(e, unicode):
       s = filter_str(e).strip()
