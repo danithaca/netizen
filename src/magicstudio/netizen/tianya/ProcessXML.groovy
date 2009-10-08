@@ -1,8 +1,146 @@
 package magicstudio.netizen.tianya
+import magicstudio.netizen.util.*;
+import org.apache.lucene.*;
+import org.apache.lucene.analysis.*;
+import org.apache.lucene.index.*;
+import org.apache.lucene.document.*;
+import org.apache.lucene.search.*;
+import org.apache.lucene.store.*
+import org.apache.lucene.analysis.cn.smart.*;
 
-XmlToRawTxt('C:\\Download\\news5-xml', 'C:\\Download', 'C:\\Download\\news5-txt')
+
+//XmlToRawTxt('C:\\Download\\news5-xml', 'C:\\Download', 'C:\\Download\\news5-txt')
+//XmlToRawTxt('C:\\Download\\', 'C:\\Download', 'C:\\Download\\')
+//ExtractKeywordsRaw('C:\\Download', 'C:\\Download')
+LuceneIndex('C:\\Download', 'C:\\Download\\lucene-news5')
 
 ////////////////// functions //////////////
+
+def LuceneIndex(xmlPath, lucenePath) {
+	xmlDir = new File(xmlPath);
+    Analyzer analyzer = new SmartChineseAnalyzer();
+    IndexWriter indexWriter = new IndexWriter(
+    		FSDirectory.open(new File(lucenePath)), 
+    		analyzer, IndexWriter.MaxFieldLength.UNLIMITED);
+	
+	parser = new XmlParser()
+	parser.setFeature('http://xml.org/sax/features/unicode-normalization-checking', false)
+	parser.setFeature('http://xml.org/sax/features/validation', false)
+	parser.setTrimWhitespace(true)
+
+	count = 0
+	for (xmlInput in xmlDir.listFiles()) {
+		def index = null
+		try {
+			try {
+				index = ((xmlInput.getName() =~ /(\d+).xml$/)[0][1]).toInteger()
+			} catch (Exception e) {
+				println "Skip file ${xmlInput.getName()}"
+				continue
+			}
+			if (count%100 == 0) println "Processing ${count++}: ${index}"
+			def thread = parser.parse(xmlInput)
+			
+			title = stripXML(thread.'@title')
+			firsttime = parseDate(thread.'@firsttime')
+			firstauthor = stripXML(thread.'@firstauthor')
+			doc = GenerateLuceneDoc(index, firsttime, firstauthor, title, 1)
+			indexWriter.addDocument(doc)
+			
+			for (post in thread.post) {
+				def author = stripXML(post.'@author')
+				def time = parseDate(post.'@time')
+				def content = stripXML(post.text())
+				doc = GenerateLuceneDoc(index, time, author, content, 0)
+				indexWriter.addDocument(doc)
+			}
+		} catch (Exception e) {
+			println "Error!"
+			e.printStackTrace()
+		}
+	}
+    indexWriter.optimize();
+    indexWriter.close();
+}
+
+
+def GenerateLuceneDoc(threadId, time, author, text, isTitle) {
+    Document doc = new Document();
+    doc.add(new NumericField("threadid").setIntValue(threadId))
+	doc.add(new NumericField("time").setLongValue(time.getTime()))
+	doc.add(new Field("author", author, Field.Store.NO, Field.Index.NOT_ANALYZED))
+	doc.add(new Field("text", text, Field.Store.NO, Field.Index.ANALYZED, Field.TermVector.YES))
+	doc.add(new NumericField("istitle").setIntValue(isTitle))
+	return doc
+}
+
+
+def OutputTermRow(file, terms, title, thread, time) {
+	terms.each { term ->
+		t = term.getTerm()
+		p = term.getPos().toInteger()
+		w = term.getWeight()
+		if (t.size()>1 && !(p in [18, 52])) {
+			row = ["\"${t}\"", p, w, title, thread, time ]
+			file.append(row.join('\t')+'\n')
+		}
+	}
+}
+
+def ExtractKeywordsRaw(xmlPath, rawPath) {
+	rowFields = ['term', 'pos', 'weight', 'title', 'thread', 'time']
+	xmlDir = new File(xmlPath)
+	rawFile = new File("${rawPath}\\term.raw")
+	rawFile.write(rowFields.join('\t')+'\n')
+	
+	parser = new XmlParser()
+	parser.setFeature('http://xml.org/sax/features/unicode-normalization-checking', false)
+	parser.setFeature('http://xml.org/sax/features/validation', false)
+	parser.setTrimWhitespace(true)
+	
+	analyzer = new SmartParser()
+	
+	count = 0
+	//errFile = new File("${rawPath}\\term.err")
+	//errFile.write("")
+	
+	for (xmlInput in xmlDir.listFiles()) {
+		def index = null
+		try {
+			try {
+				index = ((xmlInput.getName() =~ /(\d+).xml$/)[0][1]).toInteger()
+			} catch (Exception e) {
+				println "Skip file ${xmlInput.getName()}"
+				continue
+			}
+			println "Processing ${count++}: ${index}"
+			def thread = parser.parse(xmlInput)
+			
+			def samelinks = (s = thread.'@samelinks') ? s.split(',').collect({it.toInteger()}) : null
+			if (samelinks!=null && samelinks.min()<index) {
+				// since we'll see the main doc, just skip adding the thread data.
+				index = samelinks.min() // then we just use the smallest post
+			} else {
+				// this is the main data.
+				title = stripXML(thread.'@title')
+				terms = analyzer.extractTerms(title)
+				OutputTermRow(rawFile, terms, 1, index, '.')
+			}
+
+			for (post in thread.post) {
+				time = parseDate(post.'@time')
+				content = stripXML(post.text())
+				terms = analyzer.extractTerms(content)
+				OutputTermRow(rawFile, terms, 0, index, "\"${time.format('yyyy-MM-dd HH:mm:ss')}\"")
+			}
+		} catch (Exception e) {
+			println "Error! ${index}"
+			e.printStackTrace()
+			//errFile.append(index.toString()+'\n')
+		}
+	}
+}
+
 
 def XmlToRawTxt(srcPath, rawPath, txtPath) {
 	srcDir = new File(srcPath)
@@ -31,7 +169,6 @@ def XmlToRawTxt(srcPath, rawPath, txtPath) {
 			}
 			println "Processing ${count++}: ${index}"
 			def thread = parser.parse(xmlInput)
-			parser.setTrimWhitespace(true)
 			
 			def title = stripXML(thread.'@title')
 			def firsttime = parseDate(thread.'@firsttime')
@@ -53,11 +190,11 @@ def XmlToRawTxt(srcPath, rawPath, txtPath) {
 			for (post in thread.post) {
 				def author = stripXML(post.'@author')
 				def time = parseDate(post.'@time')
-				def content = post.text()
+				def content = stripXML(post.text())
 				row = [index, "\"${author}\"", "\"${time.format('yyyy-MM-dd HH:mm:ss')}\"", content.size()]
 				postFile.append(row.join('\t')+'\n')
 				txtFile.append('>>>>>>>>>> '+row[1..2].join('\t')+'\n\n')
-				txtFile.append(stripXML(content)+'\n\n')
+				txtFile.append(content+'\n\n')
 			}
 		} catch (Exception e) {
 			println "Error!"
@@ -71,46 +208,6 @@ def XmlToRawTxt(srcPath, rawPath, txtPath) {
 	}
 }
 
-def XmlToTxt(srcPath, dstPath) {
-	srcDir = new File(srcPath)
-	errFile = new File("${dstPath}\\_err.txt")
-	errFile.write("Start logging.")
-	count = 0
-	for (xmlInput in srcDir.listFiles()) {
-		println "Processing ${count++}"
-		
-		def index = null
-		try {
-			index = (xmlInput.getName() =~ /(\d+).xml$/)[0][1]
-		} catch (Exception e) {
-			println "Skip file ${xmlInput.getName()}"
-			continue
-		}
-		
-		try {
-			def parser = new XmlParser()
-			parser.setTrimWhitespace(true)
-			def thread = parser.parse(xmlInput)
-			
-			def title = stripXML(thread.title.text())
-			def firsttime = parseDate(thread.firsttime.text())
-			
-			txtOutput = new File("${dstPath}\\${firsttime.format('yyyyMMdd')}-${title.replaceAll(~/\p{Punct}/, '_')}.txt")
-			txtOutput.withWriter { writer ->
-				writer << "####### ${title}, ${index}" << '\n\n'
-				
-				for (post in thread.post) {
-					writer << "####### ${stripXML(post.author.text())}, ${parseDate(post.time.text()).format('yyyy-MM-dd HH:mm:ss')}" << '\n'
-					writer << stripXML(post.content.text()) << '\n\n'
-				}
-			}
-		} catch (Exception e) {
-			println "ERROR: ${index}"
-			e.printStackTrace()
-			errFile.append(index+'\n')
-		}
-	}
-}
 
 def stripXML(str) {
 	str = str.replaceAll(~/\s/, '')

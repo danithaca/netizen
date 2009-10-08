@@ -22,8 +22,8 @@ class Result {
 public class TestICTCLAS30 {
 
     public static void main(String[] args) throws Exception {
-        String sInput = "ICTCLAS在国内973专家组组织的评测中活动获得了第一名，在第一届国际中文处理研究机构SigHan组织的评测中都获得了多项第一名。";
-
+        //String sInput = " ICTCLAS在国内973专家组组织的评测中活动获得了第一名，在第一届国际中文??处理研究机构SigHan组织的评测中都获得了多项第一名。 ";
+    	String sInput = "『天涯时空』【刘长锋时评】“社长大战”的看点在哪里";
         //分词
         //Split(sInput);
 
@@ -35,9 +35,9 @@ public class TestICTCLAS30 {
 
         SmartParser smartParser = new SmartParser();
         System.out.println(smartParser.splitRaw(sInput));
-        /*for (SmartParser.Term term : smartParser.splitTerms(sInput)) {
+        for (SmartParser.Term term : smartParser.splitTerms(sInput)) {
         	System.out.println(term.toString());
-        }*/
+        }
         for (SmartParser.Term term : smartParser.extractTerms(sInput)) {
         	System.out.println(term.getTerm() + term.getWeight());
         }

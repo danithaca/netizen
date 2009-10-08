@@ -130,6 +130,7 @@ public class SmartParser {
 	 * extract a list of keywords from the string
 	 * doesn't follow the orders of appearance (?)
 	 * including aggregated value such as "weight"
+	 * we don't know the pos, only know posId
 	 */
 	public List<Term> extractTerms(String input) throws IOException {
 		byte[] inputBytes = input.getBytes(defaultEncoding);
