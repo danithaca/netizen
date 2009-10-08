@@ -1,6 +1,6 @@
 package magicstudio.netizen.tianya
 
-XmlToRawTxt('C:\\Download\\', 'C:\\Download', 'C:\\Download\\')
+XmlToRawTxt('C:\\Download\\news5-xml', 'C:\\Download', 'C:\\Download\\news5-txt')
 
 ////////////////// functions //////////////
 
@@ -65,8 +65,10 @@ def XmlToRawTxt(srcPath, rawPath, txtPath) {
 			errMsg += "${index}\n"
 		}
 	}
-	errFile = new File("${rawPath}\\_err.txt")
-	errFile.write(errMsg)
+	if (errMsg.length>0) {
+		errFile = new File("${rawPath}\\_err.txt")
+		errFile.write(errMsg)
+	}
 }
 
 def XmlToTxt(srcPath, dstPath) {
@@ -112,8 +114,8 @@ def XmlToTxt(srcPath, dstPath) {
 
 def stripXML(str) {
 	str = str.replaceAll(~/\s/, '')
-	str = str.replaceAll("#NEXTLINE", "\n")
-	str = str.replaceAll(~/[\n]+/, "\n")
+	str = str.replace("#NEXTLINE", "\n")
+	str = str.replaceAll(~/\n+/, "\n")
 	return str
 }
 
