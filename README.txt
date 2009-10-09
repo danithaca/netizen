@@ -1,6 +1,6 @@
 Resources:
 
-Main code base: Mac
-Databases: Mac
+Main code base: SI North / Home
+Databases: None (data exported to CSV)
 
 Downloading: SIN (Home)

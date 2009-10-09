@@ -1,33 +1,18 @@
 package magicstudio.netizen.tianya
 import magicstudio.netizen.util.*;
-import org.apache.lucene.*;
 import org.apache.lucene.analysis.*;
 import org.apache.lucene.index.*;
 import org.apache.lucene.document.*;
-import org.apache.lucene.search.*;
 import org.apache.lucene.store.*
 import org.apache.lucene.analysis.cn.smart.*;
 
 
 //XmlToRawTxt('C:\\Download\\news5-xml', 'C:\\Download', 'C:\\Download\\news5-txt')
 //XmlToRawTxt('C:\\Download\\', 'C:\\Download', 'C:\\Download\\')
-//ExtractKeywordsRaw('C:\\Download', 'C:\\Download')
-//LuceneIndex('C:\\Download', 'C:\\Download\\lucene-news5')
-LuceneSearch('C:\\Download\\lucene-news5', "tianya")
+ExtractKeywordsRawByThread('C:\\Download\\news5-xml', 'C:\\Download')
+//LuceneIndex('C:\\Download\\news5-xml', 'C:\\Download\\news5-lucene')
 
 ////////////////// functions //////////////
-
-def LuceneSearch(lucenePath, termStr) {
-	searcher = new IndexSearcher(FSDirectory.open(new File(lucenePath)), true)
-	query = new TermQuery(new Term('text', termStr))
-	hits = searcher.search(query, 1000000)
-	//println hits.scoreDocs.length
-	hits.scoreDocs.each { hit ->
-		doc = searcher.doc(hit.doc)
-		println doc.get('threadid')
-		println DateTools.timeToString(doc.get('time').toLong(),  DateTools.Resolution.YEAR)
-	}
-}
 
 def LuceneIndex(xmlPath, lucenePath) {
 	xmlDir = new File(xmlPath);
@@ -51,7 +36,8 @@ def LuceneIndex(xmlPath, lucenePath) {
 				println "Skip file ${xmlInput.getName()}"
 				continue
 			}
-			if (count%100 == 0) println "Processing ${count++}: ${index}"
+			if (count%100 == 0) println "Processing lucene: ${count}"
+            count++
 			def thread = parser.parse(xmlInput)
 			
 			title = stripXML(thread.'@title')
@@ -68,7 +54,7 @@ def LuceneIndex(xmlPath, lucenePath) {
 				indexWriter.addDocument(doc)
 			}
 		} catch (Exception e) {
-			println "Error!"
+			println "Error! -- "+index
 			e.printStackTrace()
 		}
 	}
@@ -93,7 +79,12 @@ def OutputTermRow(file, terms, title, thread, time) {
 		t = term.getTerm()
 		p = term.getPos().toInteger()
 		w = term.getWeight()
-		if (t.size()>1 && !(p in [18, 52])) {
+        /* 18 - numbers
+           52 - time/date
+           93 - english word
+        */
+		if (w>1 && t.size()>1 && !(p in [18, 52, 93])) {
+        //if (t.size()>1) {
 			row = ["\"${t}\"", p, w, title, thread, time ]
 			file.append(row.join('\t')+'\n')
 		}
@@ -153,6 +144,79 @@ def ExtractKeywordsRaw(xmlPath, rawPath) {
 		}
 	}
 }
+
+
+def ExtractKeywordsRawByThread(xmlPath, rawPath) {
+	rowFields = ['term', 'pos', 'weight', 'null1', 'thread', 'null2']
+	xmlDir = new File(xmlPath)
+	rawFile = new File("${rawPath}\\term.raw")
+	rawFile.write(rowFields.join('\t')+'\n')
+    checkpoint = new Checkpoint()
+
+	parser = new XmlParser()
+	parser.setFeature('http://xml.org/sax/features/unicode-normalization-checking', false)
+	parser.setFeature('http://xml.org/sax/features/validation', false)
+	parser.setTrimWhitespace(true)
+
+	analyzer = new SmartParser()
+
+	count = 0
+	//errFile = new File("${rawPath}\\term.err")
+	//errFile.write("")
+
+	for (xmlInput in xmlDir.listFiles()) {
+        // hack: restart ICTCLAS because experience shows it has problem after paring 2500 items.
+        /*if (count%1000 == 0) {
+          println "refreshing SmartParser at ${count}"
+          analyzer.exit()
+          analyzer = new SmartParser()
+        }*/
+        if (count%100 == 0) println "Processing extraction ${count}: ${xmlInput.getName()}"
+        count++
+      
+		def index = null
+		try {
+			try {
+				index = ((xmlInput.getName() =~ /(\d+).xml$/)[0][1]).toInteger()
+                if (index.toString() in checkpoint.getItems()) {
+                  //println "Skip processed file ${xmlInput.getName()}"
+                  continue
+                }
+                // false file list
+                // 103231: very long consecutive dashes
+                if (index in [103231]) {
+                    continue
+                }
+			} catch (Exception e) {
+				println "Skip file ${xmlInput.getName()}"
+				continue
+			}
+			def thread = parser.parse(xmlInput)
+            content = ''
+
+			def samelinks = (s = thread.'@samelinks') ? s.split(',').collect({it.toInteger()}) : null
+			if (samelinks!=null && samelinks.min()<index) {
+				// since we'll see the main doc, just skip adding the thread data.
+				index = samelinks.min() // then we just use the smallest post
+			} else {
+				content = stripXML(thread.'@title')
+			}
+			for (post in thread.post) {
+				content += stripXML(post.text())
+			}
+            // sometimes consequtive dashes will make the analyzer stop.
+            //content.replaceAll(~/\p{Alnum}/, ' ')
+            terms = analyzer.extractTerms(content)
+			OutputTermRow(rawFile, terms, '', index, '')
+            checkpoint.check(index)
+		} catch (Exception e) {
+			println "Error! -- ${index}"
+			e.printStackTrace()
+			//errFile.append(index.toString()+'\n')
+		}
+	}
+}
+
 
 
 def XmlToRawTxt(srcPath, rawPath, txtPath) {
@@ -215,7 +279,7 @@ def XmlToRawTxt(srcPath, rawPath, txtPath) {
 			errMsg += "${index}\n"
 		}
 	}
-	if (errMsg.length>0) {
+	if (errMsg.size()>0) {
 		errFile = new File("${rawPath}\\_err.txt")
 		errFile.write(errMsg)
 	}
