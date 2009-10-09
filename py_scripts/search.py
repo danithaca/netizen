@@ -1,3 +1,5 @@
+# doesn't support GBK!! wait for jython2.5 b2
+# -*- coding: GBK -*-
 # import sys
 # from org.apache.lucene.index import IndexReader
 from org.apache.lucene.store import FSDirectory
