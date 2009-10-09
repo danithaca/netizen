@@ -12,9 +12,22 @@ import org.apache.lucene.analysis.cn.smart.*;
 //XmlToRawTxt('C:\\Download\\news5-xml', 'C:\\Download', 'C:\\Download\\news5-txt')
 //XmlToRawTxt('C:\\Download\\', 'C:\\Download', 'C:\\Download\\')
 //ExtractKeywordsRaw('C:\\Download', 'C:\\Download')
-LuceneIndex('C:\\Download', 'C:\\Download\\lucene-news5')
+//LuceneIndex('C:\\Download', 'C:\\Download\\lucene-news5')
+LuceneSearch('C:\\Download\\lucene-news5', "tianya")
 
 ////////////////// functions //////////////
+
+def LuceneSearch(lucenePath, termStr) {
+	searcher = new IndexSearcher(FSDirectory.open(new File(lucenePath)), true)
+	query = new TermQuery(new Term('text', termStr))
+	hits = searcher.search(query, 1000000)
+	//println hits.scoreDocs.length
+	hits.scoreDocs.each { hit ->
+		doc = searcher.doc(hit.doc)
+		println doc.get('threadid')
+		println DateTools.timeToString(doc.get('time').toLong(),  DateTools.Resolution.YEAR)
+	}
+}
 
 def LuceneIndex(xmlPath, lucenePath) {
 	xmlDir = new File(xmlPath);
@@ -66,11 +79,11 @@ def LuceneIndex(xmlPath, lucenePath) {
 
 def GenerateLuceneDoc(threadId, time, author, text, isTitle) {
     Document doc = new Document();
-    doc.add(new NumericField("threadid").setIntValue(threadId))
-	doc.add(new NumericField("time").setLongValue(time.getTime()))
+    doc.add(new NumericField("threadid", Field.Store.YES, false).setIntValue(threadId))
+	doc.add(new NumericField("time", Field.Store.YES, true).setLongValue(time.getTime()))
 	doc.add(new Field("author", author, Field.Store.NO, Field.Index.NOT_ANALYZED))
 	doc.add(new Field("text", text, Field.Store.NO, Field.Index.ANALYZED, Field.TermVector.YES))
-	doc.add(new NumericField("istitle").setIntValue(isTitle))
+	doc.add(new NumericField("istitle", Field.Store.YES, true).setIntValue(isTitle))
 	return doc
 }
 
