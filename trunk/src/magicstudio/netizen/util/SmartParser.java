@@ -15,19 +15,17 @@ import ICTCLAS.I3S.AC.ICTCLAS30;
 
 public class SmartParser {
 	
-	static protected Charset defaultEncoding = Charset.forName("GBK");
-	static protected String configPath = "D:\\Work\\ictclas2009\\windows_JNI_32\\api";
+	static protected Charset defaultEncoding;
+	static protected String configPath;
 	// proxy design pattern
 	protected ICTCLAS30 ictclasInstance;
 	
 	public SmartParser() {
 		if (defaultEncoding == null) {
-			// TODO: add reading system parameters.
 			defaultEncoding = Charset.forName("GBK");
 		}
 		if (configPath == null) {
-			// TODO: add reading system parameters.
-			configPath = "D:\\Work\\ictclas2009\\windows_JNI_32\\api";
+			configPath = System.getProperty("ICTCLAS_HOME", "C:\\Work\\ictclas2009\\windows_JNI_32") + "\\api";
 		}
 		
 		ictclasInstance = new ICTCLAS30();
