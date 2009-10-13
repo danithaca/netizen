@@ -9,7 +9,7 @@ import org.apache.lucene.analysis.cn.smart.*;
 
 //XmlToRawTxt('C:\\Download\\news5-xml', 'C:\\Download', 'C:\\Download\\news5-txt')
 //XmlToRawTxt('C:\\Download\\', 'C:\\Download', 'C:\\Download\\')
-ExtractKeywordsRawByThread('C:\\Download\\news5-xml', 'C:\\Download')
+ExtractKeywordsRawByThread('C:\\Download\\news5-sanlu-xml', 'C:\\Download')
 //LuceneIndex('C:\\Download\\news5-xml', 'C:\\Download\\news5-lucene')
 
 ////////////////// functions //////////////
@@ -83,11 +83,11 @@ def OutputTermRow(file, terms, title, thread, time) {
            52 - time/date
            93 - english word
         */
-		if (w>1 && t.size()>1 && !(p in [18, 52, 93])) {
+		//if (w>1 && t.size()>1 && !(p in [18, 52, 93])) {
         //if (t.size()>1) {
 			row = ["\"${t}\"", p, w, title, thread, time ]
 			file.append(row.join('\t')+'\n')
-		}
+		//}
 	}
 }
 
@@ -150,8 +150,10 @@ def ExtractKeywordsRawByThread(xmlPath, rawPath) {
 	rowFields = ['term', 'pos', 'weight', 'null1', 'thread', 'null2']
 	xmlDir = new File(xmlPath)
 	rawFile = new File("${rawPath}\\term.raw")
-	rawFile.write(rowFields.join('\t')+'\n')
     checkpoint = new Checkpoint()
+    if (!checkpoint.isRecovered()) {
+	    rawFile.write(rowFields.join('\t')+'\n')
+    }
 
 	parser = new XmlParser()
 	parser.setFeature('http://xml.org/sax/features/unicode-normalization-checking', false)
@@ -164,7 +166,8 @@ def ExtractKeywordsRawByThread(xmlPath, rawPath) {
 	//errFile = new File("${rawPath}\\term.err")
 	//errFile.write("")
 
-	for (xmlInput in xmlDir.listFiles()) {
+    filesList = xmlDir.listFiles().sort()
+	for (xmlInput in filesList) {
         // hack: restart ICTCLAS because experience shows it has problem after paring 2500 items.
         /*if (count%1000 == 0) {
           println "refreshing SmartParser at ${count}"
@@ -182,9 +185,11 @@ def ExtractKeywordsRawByThread(xmlPath, rawPath) {
                   //println "Skip processed file ${xmlInput.getName()}"
                   continue
                 }
-                // false file list
-                // 103231: very long consecutive dashes
-                if (index in [103231]) {
+                // false file list, probably because of very long consecutive dashes
+                /*if (index in [103231, 110814, 41266, 46042, 99207]) {
+                    continue
+                }*/
+                if (index in [46042, 41266, 110814]) {
                     continue
                 }
 			} catch (Exception e) {
@@ -205,7 +210,8 @@ def ExtractKeywordsRawByThread(xmlPath, rawPath) {
 				content += stripXML(post.text())
 			}
             // sometimes consequtive dashes will make the analyzer stop.
-            //content.replaceAll(~/\p{Alnum}/, ' ')
+            content = content.replaceAll(~/-{2,}/, '--')
+            //println content
             terms = analyzer.extractTerms(content)
 			OutputTermRow(rawFile, terms, '', index, '')
             checkpoint.check(index)
@@ -234,8 +240,8 @@ def XmlToRawTxt(srcPath, rawPath, txtPath) {
 	parser.setTrimWhitespace(true)
 	
 	count = 0
-	errMsg = ''
-	for (xmlInput in srcDir.listFiles()) {	
+	for (xmlInput in srcDir.listFiles()) {
+        count++
 		def index = null
 		try {
 			try {
@@ -244,7 +250,7 @@ def XmlToRawTxt(srcPath, rawPath, txtPath) {
 				println "Skip file ${xmlInput.getName()}"
 				continue
 			}
-			println "Processing ${count++}: ${index}"
+			if (count%200 == 1)println "Processing text/raw ${count}: ${index}"
 			def thread = parser.parse(xmlInput)
 			
 			def title = stripXML(thread.'@title')
@@ -274,21 +280,16 @@ def XmlToRawTxt(srcPath, rawPath, txtPath) {
 				txtFile.append(content+'\n\n')
 			}
 		} catch (Exception e) {
-			println "Error!"
+			println "Error! ${index}"
 			e.printStackTrace()
-			errMsg += "${index}\n"
 		}
-	}
-	if (errMsg.size()>0) {
-		errFile = new File("${rawPath}\\_err.txt")
-		errFile.write(errMsg)
 	}
 }
 
 
 def stripXML(str) {
-	str = str.replaceAll(~/\s/, '')
-	str = str.replace("#NEXTLINE", "\n")
+	str = str.replaceAll(~/\s/, '')  // remove all the whitespaces.
+	str = str.replace("#NL", "\n")  // TODO: change it to #NL
 	str = str.replaceAll(~/\n+/, "\n")
 	return str
 }
