@@ -189,7 +189,7 @@ public class SmartParser {
             
             // add the term
             resultArr[i].term = new String(inputBytes, resultArr[i].start, resultArr[i].length, defaultEncoding);
-            // TODO: add pos, now we only have posId.
+            // TODO: add pos, now we only have posId. all mapping tables at \Data\*.map. For POS, 2-a, 21-n, ...
             resultArr[i].pos = ""+resultArr[i].posId;
         }
         dis.close();
