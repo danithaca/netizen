@@ -53,21 +53,24 @@ TAG POS=2 TYPE=A ATTR=TXT:обрЁ"""
   print script
   
 # remove the leading/trailing double quotes of the URL file  
-def cleanup_url_file():
-  f = open("D:\\Download\\urls.txt", 'r')
-  out = open("D:\\Download\\urls-clean.txt", 'w')
-  for line in f:
-    line = line.strip('"\n')
-    if line == "#EANF#":
-      continue
-    print line
-    out.write(line)
-    out.write('\n')
-  f.close()
+def cleanup_url_file(infiles, outfile):
+  count=1
+  out = open(outfile, 'w')
+  for infile in infiles:
+    f = open(infile, 'r')
+    for line in f:
+      line = line.strip('"\n\r')
+      if line == "#EANF#" or line=='':
+        continue
+      count += 1
+      out.write(line)
+      out.write('\n')
+    f.close()
   out.close()
+  print "Total lines:", count
 
 
 
 if __name__ == '__main__':
-  qiangguo_next_urls_simple()
+  cleanup_url_file(["D:\\Download\\depth2008-url.txt",''], )
   
