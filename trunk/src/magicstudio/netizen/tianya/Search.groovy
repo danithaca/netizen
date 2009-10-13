@@ -21,7 +21,11 @@ def SearchAndCopy(srcPath, dstPath) {
     println "Copy ${ids.size()} files"
     ant = new AntBuilder ()
     ids.each { index ->
-        ant.copy(file:"${srcPath}\\${index}.xml", tofile:"${dstPath}\\${index}.xml")
+        try {
+            ant.copy(file:"${srcPath}\\${index}.xml", tofile:"${dstPath}\\${index}.xml")
+        } catch (Exception e) {
+            e.printStackTrace()
+        }
     }
 }
 

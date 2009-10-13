@@ -1,9 +1,11 @@
 # -*- coding: GBK -*-
 from BeautifulSoup import BeautifulSoup, ICantBelieveItsBeautifulSoup
-from xml.dom.minidom import Document
+from xml.dom.minidom import Document, parse
 import re, codecs, sys, os, traceback
 
 def filter_str(str):
+  if str == None:
+    return ''
   RE_XML_ILLEGAL = u'([\u0000-\u0008\u000b-\u000c\u000e-\u001f\ufffe-\uffff])' + \
                  u'|' + \
                  u'([%s-%s][^%s-%s])|([^%s-%s][%s-%s])|([%s-%s]$)|(^[%s-%s])' % \
@@ -26,9 +28,14 @@ def parse_date(str):
   return str
 
 # transform html to xml
-# TODO: recursively add samelink files.
-def tianya_news_to_xml(pathfrom, pathto):
-  ffrom = open(pathfrom, 'r')
+# the filefrom has to be like /(\\d+?).shtml/, and the number will serve as the ID
+def tianya_news_to_xml(filefrom, pathto):
+  # test file name
+  m = re.search("(\\d+?).shtml$", filefrom)
+  if m == None:
+    raise RuntimeError('File format error.')
+  index = int(m.group(1))
+  ffrom = open(filefrom, 'r')
   out = Document()
   
   # prepare data
@@ -42,10 +49,12 @@ def tianya_news_to_xml(pathfrom, pathto):
   doc = doc[start:end]
   
   # init the soup parser
+  # TODO: note, it dosn't work with, say, 100002.shtml, where <img> has problems. and it doesn't throw error either.
   self_closing = BeautifulSoup.SELF_CLOSING_TAGS
   self_closing['b'] = None
   self_closing['font'] = None
   self_closing['color'] = None
+  self_closing['img'] = None
   soup = BeautifulSoup(''.join(doc), convertEntities=BeautifulSoup.ALL_ENTITIES, selfClosingTags=self_closing)
   #soup = BeautifulSoup(''.join(doc))
 
@@ -53,9 +62,51 @@ def tianya_news_to_xml(pathfrom, pathto):
   out_thread = out.createElement("thread")
   out.appendChild(out_thread)
   
-  # title
-  title = soup.find('div', id='adsp_content_title_banner')
-  out_thread.setAttribute('title', ''.join([filter_str(a.strip()) for a in title.findAll(text=True)]))
+  # same links
+  secondary_link = False
+  # at first, we tried to get all <a class='page_numb>, but a better way is just to get <td id='pageDivTop'>
+  #links = soup.findAll('a', attrs={'class':'page_numb'})
+  pagelinks = soup.find('td', id='pageDivTop')
+  if pagelinks:
+    links = pagelinks.findAll('a')
+  else:
+    links = []
+  ids = set([])
+  # add links to ids
+  for a in links:
+    m = re.match("http://www.tianya.cn/publicforum/content/news/1/(\\d+)[.]shtml", a['href'])
+    if m:
+      ids.add(m.group(1))
+  # the map() function will ensure each id is a number
+  ids = set(map(int, ids))
+  
+  if len(ids)>0:
+    # this block is to handle cases multiple pages for the same thread.
+    # first, decide which id is the thread_id: obviously it's the min id.
+    if index > min(ids):
+      ids.add(index)
+      index = min(ids) # we set the index to be the min value.
+      secondary_link = True
+      # now we know this file is not the first page, so that it should not set first author/time for the thread
+    
+    # now we look at if the thread file is already exists.
+    if os.path.exists(pathto+"\\"+str(index)+".xml"):
+      # replace out as from the xml file
+      out = parse(pathto+"\\"+str(index)+".xml")
+      out_thread = out.documentElement
+    # we don't handle cases where we don't have an existing file
+    
+    if out_thread.hasAttribute('samelinks'):
+      ids = ids.union(map(int, out_thread.getAttribute('samelinks').split(',')))
+    out_thread.setAttribute('samelinks', ','.join(map(str, ids)))
+  
+  #after processing the "samelinks", now we have out as minidom Document, and out_thread as the root element.    
+  
+  # title and id
+  if not secondary_link:
+    title = soup.find('div', id='adsp_content_title_banner')
+    out_thread.setAttribute('title', ''.join([filter_str(a.strip()) for a in title.findAll(text=True)]))
+    out_thread.setAttribute('id', str(index))
   
   # tagline
   tagline = soup.find('table', id='firstAuthor')
@@ -65,74 +116,76 @@ def tianya_news_to_xml(pathfrom, pathto):
   m = re.search(re.compile(u"作者：(.+?)提交日期：(.+?)访问：(.+?)回复：(.+)", re.UNICODE), s)
   if m == None:
     m = re.search(u"作者：(.+?)提交日期：(.+)", s)
+
   fields = m.groups()
   firstauthor = filter_str(fields[0]).strip()
   firsttime = filter_str(fields[1]).strip()
   # validate date 'cause we can't do it earlier.
   firsttime = parse_date(firsttime)
-  out_thread.setAttribute('firstauthor', firstauthor)
-  out_thread.setAttribute('firsttime', firsttime)
-  if len(fields)>2:
+  # only first link need to set these attributes
+  if not secondary_link:
+    out_thread.setAttribute('firstauthor', firstauthor)
+    out_thread.setAttribute('firsttime', firsttime)
+    
+  if (not secondary_link) and len(fields)>2:
     if re.match('^-?\d+$', fields[2].strip())==None:
       raise RuntimeError("Invalid visits number")
     out_thread.setAttribute('visits', fields[2].strip())
-  if len(fields)>3:
+  if (not secondary_link) and len(fields)>3:
     if re.match('^-?\d+$', fields[3].strip())==None:
       raise RuntimeError("Invalid responses number")
     out_thread.setAttribute('responses', fields[3].strip())
   
-  # same links
-  links = soup.findAll('a', attrs={'class':'page_numb'})
-  ids = []
-  for a in links:
-    ids.append(re.match("http://www.tianya.cn/publicforum/content/news/1/(\\d+)[.]shtml", a['href']).group(1))
-  if ids:
-    # the map() function will ensure each id is a number
-    out_thread.setAttribute('samelinks', ','.join(map(str, map(int, ids))))
-  
-  # process post contents
+  # processing post content. it's the same for both first link and secondary links.
   content = soup.find('div', id='pContentDiv').first()
   out_post = out.createElement("post")
   out_post.setAttribute('author', firstauthor)
   out_post.setAttribute('time', firsttime)
   content_str = ''
   
-  # TODO: if only one post has problem, still add the post?
+  # process the text in the post content.
+  exc = None
   for e in content.childGenerator():
-    if isinstance(e, unicode):
-      s = filter_str(e).strip()
-      if s != '':
-        content_str += s
-    else:
-      s = ' '.join([filter_str(a.strip()) for a in e.findAll(text=True)])
-      s = s.strip()
-      if s == '':
-        content_str += '#NEXTLINE\n'
+    try:
+      if isinstance(e, unicode):
+        s = filter_str(e).strip()
+        if s != '':
+          content_str += s
       else:
-        m = re.match(u"作者：(.+?)回复日期：(.+)".decode('gbk'), s)
-        if m != None:
-          # first close <post>, then start new post
-          out_content = out.createTextNode(content_str)
-          out_post.appendChild(out_content)
-          out_thread.appendChild(out_post)
-          out_post = out.createElement("post")
-          out_post.setAttribute('author', filter_str(m.group(1)).strip())
-          posttime = parse_date(filter_str(m.group(2)).strip())
-          out_post.setAttribute('time', posttime)
-          content_str = ''
+        s = ' '.join([filter_str(a.strip()) for a in e.findAll(text=True)])
+        s = s.strip()
+        if s == '':
+          content_str += '#NL\n'
         else:
-          content_str += s + '#NEXTLINE\n'
-          
+          m = re.match(u"作者：(.+?)回复日期：(.+)".decode('gbk'), s)
+          if m != None:
+            # first close <post>, then start new post
+            out_content = out.createTextNode(content_str)
+            out_post.appendChild(out_content)
+            out_thread.appendChild(out_post)
+            out_post = out.createElement("post")
+            out_post.setAttribute('author', filter_str(m.group(1)).strip())
+            posttime = parse_date(filter_str(m.group(2)).strip())
+            out_post.setAttribute('time', posttime)
+            content_str = ''
+          else:
+            content_str += s + '#NL\n'
+    except:
+      exc = PostException('single post exception')
+      
   # close xml
   out_content = out.createTextNode(content_str)
   out_post.appendChild(out_content)
   out_thread.appendChild(out_post)
   
   # prettify and output
-  fto = open(pathto, 'w')
-  fto.write(out.toprettyxml(indent="  ", encoding='utf-8'))
+  # no matter whether we have the thread file or not, we'll just overwrite it.
+  fto = open(pathto+"\\"+str(index)+".xml", 'w')
+  fto.write(out.toprettyxml(indent=" ", encoding='utf-8'))
   ffrom.close()
   fto.close()
+  if exc != None:
+    raise exc
   
   
 # transform shtml files in a direcotry to another directory.
@@ -144,12 +197,18 @@ def tianya_news_transform_folder(pathfrom, pathto):
     count += 1
     num = re.match("(\\d+?).shtml", f)
     if num != None:
-      print "Processing", f, "(%d / %d)" % (count, len(dir))
+      if (count%200)==1:
+        print "Processing shtml-xml: ", f, "(%d / %d)" % (count, len(dir))
       num = num.group(1)
       try:
-        tianya_news_to_xml(pathfrom+'\\'+f, pathto+'\\'+str(num)+".xml")
+        tianya_news_to_xml(pathfrom+'\\'+f, pathto)
+      except PostException:
+        print "partial error", f
+        errfile.write('--'+str(num)+'\n')
+        traceback.print_tb(sys.exc_info()[2], file=errfile)
+        errfile.flush()
       except:
-        print "!!! ERROR: "
+        print "!!! ERROR:", f
         errfile.write(str(num)+'\n')
         traceback.print_tb(sys.exc_info()[2], file=errfile)
         errfile.flush()
@@ -172,16 +231,26 @@ def tianya_news_transform_err():
   errfile.close()
 
 def print_error_file():
-  f = open("C:\\Download\\news5-xml\\_err.txt", 'r')
+  f = open("C:\\Download\\news5-xml-new\\_err.txt", 'r')
+  count = 0
   for l in f:
     if l[0]!=' ':
       print l.strip()
+      count += 1
+  print "Total:", count
+
+
+class PostException(Exception):
+  def __init__(self,value):
+    self.value = value
+  def __str__(self):
+    return repr(self.value)
 
 
 if __name__ == '__main__':
   #sys.setdefaultencoding("utf-8")
   #test_bsoup()
-  #tianya_news_to_xml("C:\\Download\\tianya-news5\\100229.shtml", 'C:\\Download\\100229.xml')
-  #tianya_news_transform_folder("C:\\Download\\tianya-news5", "C:\\Download\\news5-xml")
-  print_error_file()
+  #tianya_news_to_xml("C:\\Download\\tianya-news5\\100002.shtml", 'C:\\Download\\')
+  tianya_news_transform_folder("C:\\Download\\tianya-news5", "C:\\Download\\news5-xml-new")
+  #print_error_file()
   
