@@ -1,4 +1,5 @@
 # -*- coding: GBK -*-
+import re
 
 # generate next urls for tianya-news
 def tianya_next_urls():
@@ -60,6 +61,7 @@ def cleanup_url_file(infiles, outfile):
     f = open(infile, 'r')
     for line in f:
       line = line.strip('"\n\r')
+      line = re.sub("^\W*", '', line)
       if line == "#EANF#" or line=='':
         continue
       count += 1
@@ -72,5 +74,5 @@ def cleanup_url_file(infiles, outfile):
 
 
 if __name__ == '__main__':
-  cleanup_url_file(["N:\\Download\\qiangguo2008-urls.txt"], "N:\\Download\\qiangguo-clean-urls.txt")
+	cleanup_url_file(["D:\\Download\\people-urls.txt"], "D:\\Download\\people-clean-urls.txt")
   
