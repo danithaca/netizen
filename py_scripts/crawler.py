@@ -74,5 +74,5 @@ def cleanup_url_file(infiles, outfile):
 
 
 if __name__ == '__main__':
-	cleanup_url_file(["D:\\Download\\people-urls.txt"], "D:\\Download\\people-clean-urls.txt")
+	cleanup_url_file(["N:\\Download\\depth-clean-urls.txt"], "N:\\Download\\depth-clean2-urls.txt")
   
