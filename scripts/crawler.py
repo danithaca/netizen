@@ -61,18 +61,30 @@ def cleanup_url_file(infiles, outfile):
     f = open(infile, 'r')
     for line in f:
       line = line.strip('"\n\r')
-      line = re.sub("^\W*", '', line)
       if line == "#EANF#" or line=='':
         continue
+      line = re.sub("^\W*", '', line)
       count += 1
       out.write(line)
       out.write('\n')
     f.close()
   out.close()
   print "Total lines:", count
+  
+  
+def split_url_file(infile, size):
+  f = open(infile, 'r')
+  count = 0
+  for line in f:
+    index = count // size
+    mod = count % size
+    if mod == 0:
+      o = open(infile+str(index), 'w')
+    o.write(line)
+    count += 1
 
 
 
 if __name__ == '__main__':
-	cleanup_url_file(["N:\\Download\\depth-clean-urls.txt"], "N:\\Download\\depth-clean2-urls.txt")
-  
+    #cleanup_url_file(["D:\\Download\\people-urls.txt"], "D:\\Download\\people-clean-urls.txt")
+    split_url_file("D:\\Download\\people-clean-urls.txt", 20000)
