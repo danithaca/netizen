@@ -1,4 +1,4 @@
-package magicstudio.netizen.trial;
+package magicstudio.netizen.util;
 
 import ICTCLAS.I3S.AC.ICTCLAS30;
 
