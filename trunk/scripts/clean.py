@@ -90,9 +90,9 @@ def tianya_news_to_xml(filefrom, pathto):
       # now we know this file is not the first page, so that it should not set first author/time for the thread
     
     # now we look at if the thread file is already exists.
-    if os.path.exists(pathto+"\\"+str(index)+".xml"):
+    if os.path.exists(pathto+"/"+str(index)+".xml"):
       # replace out as from the xml file
-      out = parse(pathto+"\\"+str(index)+".xml")
+      out = parse(pathto+"/"+str(index)+".xml")
       out_thread = out.documentElement
     # we don't handle cases where we don't have an existing file
     
@@ -180,7 +180,7 @@ def tianya_news_to_xml(filefrom, pathto):
   
   # prettify and output
   # no matter whether we have the thread file or not, we'll just overwrite it.
-  fto = open(pathto+"\\"+str(index)+".xml", 'w')
+  fto = open(pathto+"/"+str(index)+".xml", 'w')
   fto.write(out.toprettyxml(indent=" ", encoding='utf-8'))
   ffrom.close()
   fto.close()
@@ -190,7 +190,7 @@ def tianya_news_to_xml(filefrom, pathto):
   
 # transform shtml files in a direcotry to another directory.
 def tianya_news_transform_folder(pathfrom, pathto):
-  errfile = open(pathto+"\\_err.txt", 'w')
+  errfile = open(pathto+"/_err.txt", 'w')
   dir = os.listdir(pathfrom)
   count = 0
   for f in dir:
@@ -201,7 +201,7 @@ def tianya_news_transform_folder(pathfrom, pathto):
         print "Processing shtml-xml: ", f, "(%d / %d)" % (count, len(dir))
       num = num.group(1)
       try:
-        tianya_news_to_xml(pathfrom+'\\'+f, pathto)
+        tianya_news_to_xml(pathfrom+'/'+f, pathto)
       except PostException:
         print "partial error", f
         errfile.write('--'+str(num)+'\n')
@@ -230,6 +230,7 @@ def tianya_news_transform_err():
       #  print num
   errfile.close()
 
+
 def print_error_file():
   f = open("C:\\Download\\news5-xml-new\\_err.txt", 'r')
   count = 0
@@ -251,6 +252,6 @@ if __name__ == '__main__':
   #sys.setdefaultencoding("utf-8")
   #test_bsoup()
   #tianya_news_to_xml("C:\\Download\\tianya-news5\\100002.shtml", 'C:\\Download\\')
-  tianya_news_transform_folder("C:\\Download\\tianya-news5", "C:\\Download\\news5-xml-new")
+  tianya_news_transform_folder("../../data/tianya-news-5", "../../data/tianya-news-5-xml")
   #print_error_file()
   
