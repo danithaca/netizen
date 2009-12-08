@@ -1,4 +1,3 @@
-package magicstudio.netizen.tianya
 import magicstudio.netizen.util.*;
 import org.apache.lucene.analysis.*;
 import org.apache.lucene.index.*;
@@ -6,11 +5,10 @@ import org.apache.lucene.document.*;
 import org.apache.lucene.store.*
 import org.apache.lucene.analysis.cn.smart.*;
 
-
-//XmlToRawTxt('C:\\Download\\news5-xml', 'C:\\Download', 'C:\\Download\\news5-txt')
-//XmlToRawTxt('C:\\Download\\', 'C:\\Download', 'C:\\Download\\')
-ExtractKeywordsRawByThread('C:\\Download\\news5-sanlu-xml', 'C:\\Download')
-//LuceneIndex('C:\\Download\\news5-xml', 'C:\\Download\\news5-lucene')
+println "Running scripts"
+//XmlToRawTxt('/data/data/ChinaMedia/tianya-news-5-xml', '/data/data/ChinaMedia/tianya-news-5-network', '/data/data/ChinaMedia/tianya-news-5-txt')
+//ExtractKeywordsRawByThread('C:\\Download\\news5-sanlu-xml', 'C:\\Download')
+LuceneIndex('/data/data/ChinaMedia/tianya-news-5-xml', '/data/data/ChinaMedia/tianya-news-5-lucene')
 
 ////////////////// functions //////////////
 
@@ -149,7 +147,7 @@ def ExtractKeywordsRaw(xmlPath, rawPath) {
 def ExtractKeywordsRawByThread(xmlPath, rawPath) {
 	rowFields = ['term', 'pos', 'weight', 'null1', 'thread', 'null2']
 	xmlDir = new File(xmlPath)
-	rawFile = new File("${rawPath}\\term.raw")
+	rawFile = new File("${rawPath}/term.raw")
     checkpoint = new Checkpoint()
     if (!checkpoint.isRecovered()) {
 	    rawFile.write(rowFields.join('\t')+'\n')
@@ -227,9 +225,9 @@ def ExtractKeywordsRawByThread(xmlPath, rawPath) {
 
 def XmlToRawTxt(srcPath, rawPath, txtPath) {
 	srcDir = new File(srcPath)
-	threadFile = new File("${rawPath}\\thread.raw")
+	threadFile = new File("${rawPath}/thread.raw")
 	threadFile.write(['index', 'title', 'author', 'time', 'visits', 'responses'].join('\t')+'\n')
-	postFile = new File("${rawPath}\\post.raw")
+	postFile = new File("${rawPath}/post.raw")
 	postFile.write(['index', 'author', 'time', 'size'].join('\t')+'\n')
 	
 	def parser = new XmlParser()
@@ -268,7 +266,7 @@ def XmlToRawTxt(srcPath, rawPath, txtPath) {
 			}
 			
 			// create/reuse text file
-			def txtFile = new File("${txtPath}\\${firsttime.format('yyyyMMdd')}-${title.replaceAll(~/\p{Punct}/, '')}.txt")
+			def txtFile = new File("${txtPath}/${firsttime.format('yyyyMMdd')}-${title.replaceAll(~/\p{Punct}/, '')}.txt")
 				
 			for (post in thread.post) {
 				def author = stripXML(post.'@author')
