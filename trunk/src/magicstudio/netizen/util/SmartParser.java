@@ -25,7 +25,7 @@ public class SmartParser {
 			defaultEncoding = Charset.forName("GBK");
 		}
 		if (configPath == null) {
-			configPath = System.getProperty("ICTCLAS_HOME", "C:\\Work\\ictclas2009\\windows_JNI_32") + "\\api";
+			configPath = System.getenv("ICTCLAS_HOME");
 		}
 		
 		ictclasInstance = new ICTCLAS30();
@@ -50,7 +50,7 @@ public class SmartParser {
 	}
 	
 	public void loadUserDict(String dictName) {
-		dictName = configPath + "\\" + dictName; // TODO: should be system dependent
+		dictName = configPath + File.pathSeparator + dictName;
 		if (!(new File(dictName)).exists()) {
 			throw new RuntimeException("Can't load user dictionary at "+dictName);
 		}

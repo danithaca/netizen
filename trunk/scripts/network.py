@@ -5,6 +5,14 @@
 # [68,78): verbs
 # [2,7): adjectives
 
+def tianya_term(line):
+  fields = line.strip().split('\t')
+  term = fields[0].strip('"')
+  pos = int(fields[1])
+  weight = int(fields[2])
+  thread = long(fields[4])
+  return (term, pos, weight, thread)
+
 def term_output_relations(src, dst):
   #ignore_pos = reduce(list.__add__, [[18], range(78, 96), range(40, 51)])
   allow_pos = reduce(list.__add__, [range(21,33)])
@@ -13,11 +21,7 @@ def term_output_relations(src, dst):
   tag = src.readline()
   print "reading files"
   for line in src:
-    fields = line.strip().split('\t')
-    term = fields[0].strip('"')
-    pos = int(fields[1])
-    weight = int(fields[2])
-    thread = long(fields[4])
+    (term, pos, weight, thread) = tianya_term(line)
     if weight<5 or pos not in allow_pos: continue
     th_terms = th_dic.get(thread, [])
     th_terms.append((term, weight))

@@ -1,21 +1,20 @@
-package magicstudio.netizen.trial
 import magicstudio.netizen.util.SmartParser;
 
-println System.getProperties().getProperty('java.library.path')
+//println System.getProperties().getProperty('java.library.path')
 
 def sp = new SmartParser()
-//def s = sp.splitRaw("你好北京")
-def s = sp.splitRaw("Hello Beijing")
+def s = sp.splitRaw("你好北京")
+//def s = sp.splitRaw("Hello Beijing")
 println s
-//sp.loadUserDict();
-def t = sp.splitTerms("Hello Beijing\nHello Jinan\n");
-t.each {
-	println it
-}
-
-t = sp.extractTerms("a b c d e a a b");
-t.each {
-	println it
-}
+////sp.loadUserDict();
+//def t = sp.splitTerms("Hello Beijing\nHello Jinan\n");
+//t.each {
+//	println it
+//}
+//
+//t = sp.extractTerms("a b c d e a a b");
+//t.each {
+//	println it
+//}
 
 sp.exit()
