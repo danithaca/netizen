@@ -1,4 +1,4 @@
-# -*- coding: utf8 -*-
+# encoding: gbk
 from math import log
 from os import listdir
 from random import sample
@@ -28,6 +28,20 @@ def gbk_to_utf8(dir):
   for file in files:
     file = open(dir+'/'+file, 'rw')
     print file.read()
+    
+
+# filter string in a line, and then sort
+def filter_sort(filename, filter_str, sort_field_index):
+	f = open(filename, 'r')
+	lst=[]
+	for line in f:
+		if line.find(filter_str) != -1:
+			line = line.strip()
+			fields = line.split(',')
+			lst.append((int(fields[sort_field_index]), line))
+	lst = sorted(lst, lambda x,y: cmp(x[0],y[0]), None, True)
+	for i in lst: print i[1]
+
   
 
 if __name__ == '__main__':
