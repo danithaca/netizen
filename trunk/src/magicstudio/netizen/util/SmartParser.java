@@ -1,12 +1,18 @@
 package magicstudio.netizen.util;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.Arrays;
@@ -19,6 +25,8 @@ public class SmartParser {
 	static protected String configPath;
 	// proxy design pattern
 	protected ICTCLAS30 ictclasInstance;
+	static protected Map<Integer, String> posMapNumStr = new HashMap<Integer, String>();
+	static protected Map<String, Integer> posMapStrNum = new HashMap<String, Integer>();
 	
 	public SmartParser() {
 		if (defaultEncoding == null) {
@@ -32,7 +40,7 @@ public class SmartParser {
 		if (!ictclasInstance.ICTCLAS_Init(configPath.getBytes(defaultEncoding))) {
 			throw new RuntimeException("Cannot initialize ICTCLAS30");
 		}
-		setPosMapping(1);
+		setPosMapping(1, "pos_map.TXT");
 	}
 	
 	/*
@@ -43,10 +51,43 @@ public class SmartParser {
             2			北大二级标注集
             3			北大一级标注集
     */
-	public void setPosMapping(int mapping) {
+	public void setPosMapping(int mapping, String mapName) {
 		if (ictclasInstance.ICTCLAS_SetPOSmap(mapping) == 0) {
 			throw new RuntimeException("Cannot set POS map");
 		}
+		mapName = configPath + File.separator + mapName;
+		File mapFile = new File(mapName);
+		try {
+			BufferedReader reader = new BufferedReader(new FileReader(mapFile));
+			String line;
+			while ((line=reader.readLine()) != null) {
+				StringTokenizer tokens = new StringTokenizer(line);
+				if (!tokens.hasMoreElements()) continue;
+				int index = Integer.parseInt(tokens.nextToken());
+				String name = "";
+				if (tokens.hasMoreTokens()) {
+					name = tokens.nextToken().toLowerCase();
+				}
+				posMapNumStr.put(index, name);
+				posMapStrNum.put(name, index);
+			}
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	static public int posMap(String name) {
+		Integer i = posMapStrNum.get(name.toLowerCase());
+		if (i == null) throw new IllegalArgumentException("Can't find pos " + name);
+		return i.intValue();
+	}
+	
+	static public String posMap(int index) {
+		String name = posMapNumStr.get(index);
+		if (name == null) throw new IllegalArgumentException("Can't find pos at " + index);
+		return name;
 	}
 	
 	public void loadUserDict(String dictName) {
@@ -102,6 +143,13 @@ public class SmartParser {
 		public int getStart() { return start; }
 		public int getWordId() { return wordId; }
 		public int getWeight() { return weight; }
+		public int getPosId() {
+			if (posId != 0) {return posId;}
+			else {
+				posId = SmartParser.posMap(pos);
+				return posId;
+			}
+		}
 		@Override
 		public String toString() {
 			return "<"+term+", "+pos+">";
@@ -189,8 +237,7 @@ public class SmartParser {
             
             // add the term
             resultArr[i].term = new String(inputBytes, resultArr[i].start, resultArr[i].length, defaultEncoding);
-            // TODO: add pos, now we only have posId. all mapping tables at \Data\*.map. For POS, 2-a, 21-n, ...
-            resultArr[i].pos = ""+resultArr[i].posId;
+            resultArr[i].pos = posMap(resultArr[i].posId);
         }
         dis.close();
         return Arrays.asList(resultArr);

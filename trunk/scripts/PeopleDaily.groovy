@@ -8,7 +8,8 @@ import org.apache.lucene.analysis.cn.smart.*;
 println "Running scripts"
 //AddTxtToLucene('/data/data/ChinaMedia/people-3-txt-clean', '/data/data/ChinaMedia/people-3-lucene')
 //OutputTermUsage('/data/data/ChinaMedia/people-3-txt-clean', '/data/data/ChinaMedia/people-3-network/allterms.raw')
-OutputTermUsageSeparate('/data/data/ChinaMedia/people-3-txt-clean', '/data/data/ChinaMedia/people-3-network/alltermss3.raw')
+//OutputTermUsageSeparate('/data/data/ChinaMedia/people-3-txt-clean', '/data/data/ChinaMedia/people-3-network/alltermss3.raw')
+OutputTermPosition('/data/data/ChinaMedia/tianya-news-5-tiger-txt', '/data/data/ChinaMedia/tianya-news-5-network/termtiger.raw')
 
 //////////////////////////////////////////////////
 
@@ -100,6 +101,39 @@ def OutputTermUsageSeparate(srcPath, outputFilename) {
 			output.append(row.join('\t')+'\n')
 		}
 		if (count%1000 == 0) println "Processing articles: ${count}"
+		count++
+	}
+}
+
+// read files from folder, output analyzed terms to a file.
+def OutputTermPosition(srcPath, outputFilename) {
+	srcDir = new File(srcPath);
+	output = new File(outputFilename)
+	header = ['threadid', 'position', 'term', 'pos']
+	output.append(header.join('\t')+'\n')
+	analyzer = new SmartParser()
+	count = 0
+	
+	srcDir.eachFile { file ->
+		try {
+			threadid = ((file.getName() =~ /(\d+).txt$/)[0][1]).toInteger()
+		} catch (Exception e) {
+			println "Skip file ${txtFile.getName()}"
+			return
+		}
+		s = file.getText('utf8')
+		terms = analyzer.splitTerms(s)
+
+		position = 0
+		for (term in terms) {
+			t = term.getTerm()
+			if (t=='*') continue;
+			p = term.getPosId()
+			row = [threadid, position, t, p]
+			output.append(row.join('\t')+'\n')
+			position++;
+		}
+		if (count%100 == 0) println "Processing articles: ${count}"
 		count++
 	}
 }

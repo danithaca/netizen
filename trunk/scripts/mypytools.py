@@ -1,4 +1,4 @@
-# -*- coding: GBK -*-
+# -*- coding: utf8 -*-
 from math import log
 from os import listdir
 from random import sample
@@ -20,10 +20,19 @@ def random_sample_files(src, dst, num):
   s = sample(p, num)
   for f in s:
     copy(src+'/'+f, dst+'/'+f)
+    
+
+# not working!!!
+def gbk_to_utf8(dir):
+  files = listdir(dir)
+  for file in files:
+    file = open(dir+'/'+file, 'rw')
+    print file.read()
   
 
 if __name__ == '__main__':
 #  p = [0.5, 0.1, 0.4]
 #  q = [0.2, 0.5, 0.3]
 #  print kl_divergence(p, q)
-  random_sample_files('c:/aa', 'c:/bb', 3)
+  #random_sample_files('c:/aa', 'c:/bb', 3)
+  gbk_to_utf8('../testdata')
