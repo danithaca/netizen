@@ -6,9 +6,9 @@ import org.apache.lucene.store.*
 import org.apache.lucene.analysis.cn.smart.*;
 
 println "Running scripts"
-//XmlToRawTxt('/data/data/ChinaMedia/tianya-news-5-xml', '/data/data/ChinaMedia/tianya-news-5-network', '/data/data/ChinaMedia/tianya-news-5-txt')
+XmlToRawTxt('/data/data/ChinaMedia/tianya-news-5-flesh', '/dev/null', '/data/data/ChinaMedia/tianya-news-5-flesh-txt')
 //ExtractKeywordsRawByThread('C:\\Download\\news5-sanlu-xml', 'C:\\Download')
-LuceneIndex('/data/data/ChinaMedia/tianya-news-5-xml', '/data/data/ChinaMedia/tianya-news-5-lucene')
+//LuceneIndex('/data/data/ChinaMedia/tianya-news-5-xml', '/data/data/ChinaMedia/tianya-news-5-lucene')
 
 ////////////////// functions //////////////
 
@@ -225,10 +225,10 @@ def ExtractKeywordsRawByThread(xmlPath, rawPath) {
 
 def XmlToRawTxt(srcPath, rawPath, txtPath) {
 	srcDir = new File(srcPath)
-	threadFile = new File("${rawPath}/thread.raw")
-	threadFile.write(['index', 'title', 'author', 'time', 'visits', 'responses'].join('\t')+'\n')
-	postFile = new File("${rawPath}/post.raw")
-	postFile.write(['index', 'author', 'time', 'size'].join('\t')+'\n')
+	//threadFile = new File("${rawPath}/thread.raw")
+	//threadFile.write(['index', 'title', 'author', 'time', 'visits', 'responses'].join('\t')+'\n')
+	//postFile = new File("${rawPath}/post.raw")
+	//postFile.write(['index', 'author', 'time', 'size'].join('\t')+'\n')
 	
 	def parser = new XmlParser()
 	// TagSoup parser doesn't work very well.
@@ -258,23 +258,25 @@ def XmlToRawTxt(srcPath, rawPath, txtPath) {
 			def responses = (s = thread.'@responses') ? s.toInteger() : 0
 			def samelinks = (s = thread.'@samelinks') ? s.split(',').collect({it.toInteger()}) : null
 			//if (samelinks) {println "Has links!!!"}
-			if (samelinks!=null && samelinks.min()<index) {
+			/*if (samelinks!=null && samelinks.min()<index) {
 				index = samelinks.min() // then we just use the smallest post
 			} else {
 				row = [index, '"'+title.replace('"', '\'')+'"', "\"${firstauthor}\"", "\"${firsttime.format('yyyy-MM-dd HH:mm:ss')}\"", visits, responses].join('\t')
 				threadFile.append(row+'\n')
-			}
+			}*/
 			
 			// create/reuse text file
-			def txtFile = new File("${txtPath}/${firsttime.format('yyyyMMdd')}-${title.replaceAll(~/\p{Punct}/, '')}.txt")
+			//def txtFile = new File("${txtPath}/${firsttime.format('yyyyMMdd')}-${title.replaceAll(~/\p{Punct}/, '')}.txt")
+			def txtFile = new File("${txtPath}/${index}.txt", )
 				
 			for (post in thread.post) {
 				def author = stripXML(post.'@author')
 				def time = parseDate(post.'@time')
 				def content = stripXML(post.text())
 				row = [index, "\"${author}\"", "\"${time.format('yyyy-MM-dd HH:mm:ss')}\"", content.size()]
-				postFile.append(row.join('\t')+'\n')
-				txtFile.append('>>>>>>>>>> '+row[1..2].join('\t')+'\n\n')
+				//postFile.append(row.join('\t')+'\n')
+				//txtFile.append('>>>>>>>>>> '+row[1..2].join('\t')+'\n\n')
+				txtFile.append('* '*50)
 				txtFile.append(content+'\n\n')
 			}
 		} catch (Exception e) {
