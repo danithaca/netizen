@@ -6,7 +6,7 @@ import org.apache.lucene.store.*
 import org.apache.lucene.analysis.cn.smart.*;
 
 println "Running scripts"
-XmlToRawTxt('/data/data/ChinaMedia/tianya-news-5-flesh', '/dev/null', '/data/data/ChinaMedia/tianya-news-5-flesh-txt')
+XmlToRawTxt('/data/data/ChinaMedia/tianya-news-5', '/dev/null', '/data/data/ChinaMedia/tianya-news-5-firstonly')
 //ExtractKeywordsRawByThread('C:\\Download\\news5-sanlu-xml', 'C:\\Download')
 //LuceneIndex('/data/data/ChinaMedia/tianya-news-5-xml', '/data/data/ChinaMedia/tianya-news-5-lucene')
 
@@ -278,6 +278,8 @@ def XmlToRawTxt(srcPath, rawPath, txtPath) {
 				//txtFile.append('>>>>>>>>>> '+row[1..2].join('\t')+'\n\n')
 				txtFile.append('* '*50)
 				txtFile.append(content+'\n\n')
+                // hack: only include the first post
+                break;
 			}
 		} catch (Exception e) {
 			println "Error! ${index}"
