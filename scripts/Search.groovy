@@ -3,17 +3,17 @@ import org.apache.lucene.index.*
 import org.apache.lucene.store.*
 
 
-//ids = LuceneSearchPhrase('/data/data/ChinaMedia/people-3-lucene', "人肉搜索")
+//ids = LuceneSearchPhrase('/data/data/ChinaMedia/tianya-news-5-firstonly-lucene', "三鹿")
 //println ids.size()
-SearchAndCopy('/data/data/ChinaMedia/tianya-news-5-xml', '/data/data/ChinaMedia/tianya-news-5-milk', '/data/data/ChinaMedia/tianya-news-5-lucene')
+SearchAndCopy('/data/data/ChinaMedia/tianya-news-5-xml', '/data/data/ChinaMedia/tianya-news-5-tiger', '/data/data/ChinaMedia/tianya-news-5-firstonly-lucene')
 
 
 ///////////////////////// functions /////////////////////
 
 def SearchAndCopy(srcPath, dstPath, lucenePath) {
     ids = []
-    ids += LuceneSearchTerm(lucenePath, "三鹿")
-    ids += LuceneSearchPhrase(lucenePath, "三鹿")
+    ids += LuceneSearchTerm(lucenePath, "华南虎")
+    ids += LuceneSearchPhrase(lucenePath, "华南虎")
     //ids += LuceneSearchTerm(lucenePath, "奶粉")
     //ids += LuceneSearchPhrase(lucenePath, "奶粉")
     ids = ids.unique()
