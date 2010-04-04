@@ -2,13 +2,13 @@ import magicstudio.netizen.util.*;
 import org.apache.lucene.analysis.*;
 import org.apache.lucene.index.*;
 import org.apache.lucene.document.*;
-import org.apache.lucene.store.*
+import org.apache.lucene.store.*;
 import org.apache.lucene.analysis.cn.smart.*;
 
 println "Running scripts"
-XmlToRawTxt('/data/data/ChinaMedia/tianya-news-5', '/dev/null', '/data/data/ChinaMedia/tianya-news-5-firstonly')
+XmlToRawTxt('/data/data/ChinaMedia/tianya-news-5-tiger', '/dev/null', '/data/data/ChinaMedia/tianya-news-5-tiger-txt')
 //ExtractKeywordsRawByThread('C:\\Download\\news5-sanlu-xml', 'C:\\Download')
-//LuceneIndex('/data/data/ChinaMedia/tianya-news-5-xml', '/data/data/ChinaMedia/tianya-news-5-lucene')
+//LuceneIndex('/data/data/ChinaMedia/tianya-news-5-xml', '/data/data/ChinaMedia/tianya-news-5-firstonly-lucene')
 
 ////////////////// functions //////////////
 
@@ -40,6 +40,12 @@ def LuceneIndex(xmlPath, lucenePath) {
 			
 			title = stripXML(thread.'@title')
 			firsttime = parseDate(thread.'@firsttime')
+
+			// hack: skip time
+			starttime = new Date().parse("yyyy-M-d", "2007-10-1")
+			endtime = new Date().parse("yyyy-M-d", "2009-3-1")
+			if (firsttime.before(starttime) || firsttime.after(endtime)) { continue }
+
 			firstauthor = stripXML(thread.'@firstauthor')
 			doc = GenerateLuceneDoc(index, firsttime, firstauthor, title, 1)
 			indexWriter.addDocument(doc)
@@ -50,6 +56,8 @@ def LuceneIndex(xmlPath, lucenePath) {
 				def content = stripXML(post.text())
 				doc = GenerateLuceneDoc(index, time, author, content, 0)
 				indexWriter.addDocument(doc)
+				// hack: only include the first post
+				break
 			}
 		} catch (Exception e) {
 			println "Error! -- "+index
@@ -268,6 +276,7 @@ def XmlToRawTxt(srcPath, rawPath, txtPath) {
 			// create/reuse text file
 			//def txtFile = new File("${txtPath}/${firsttime.format('yyyyMMdd')}-${title.replaceAll(~/\p{Punct}/, '')}.txt")
 			def txtFile = new File("${txtPath}/${index}.txt", )
+			txtFile.append(title+'\n\n')
 				
 			for (post in thread.post) {
 				def author = stripXML(post.'@author')
@@ -275,11 +284,13 @@ def XmlToRawTxt(srcPath, rawPath, txtPath) {
 				def content = stripXML(post.text())
 				row = [index, "\"${author}\"", "\"${time.format('yyyy-MM-dd HH:mm:ss')}\"", content.size()]
 				//postFile.append(row.join('\t')+'\n')
-				//txtFile.append('>>>>>>>>>> '+row[1..2].join('\t')+'\n\n')
-				txtFile.append('* '*50)
-				txtFile.append(content+'\n\n')
+				txtFile.append('>>>>>>>>>> '+row[1..2].join('\t')+'\r\n\r\n')
+				//txtFile.append('* '*50)
+				//txtFile.append(title+'\n\n')
+				txtFile.append(content+'\r\n\r\n')
+				txtFile.append('* '*10)
                 // hack: only include the first post
-                break;
+                //break;
 			}
 		} catch (Exception e) {
 			println "Error! ${index}"
