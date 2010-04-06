@@ -1,5 +1,31 @@
 # coding: utf8
 
+# from the dictionary file, generate the userdict.txt file
+def generate_userdict():
+  input = open('dictionary.txt', 'r')
+  output = open('userdict.txt', 'w')
+  terms = set([])
+  for line in input:
+    line = line.strip()
+    if line.startswith('#') or line=='': continue
+    term_synonyms = line.split(',')
+    for term_str in term_synonyms:
+      if term_str.startswith('-'): continue
+      term_part = term_str.split('|')
+      if len(term_part)==1:
+        term = (term_part[0], 'zz')
+      elif len(term_part)==2:
+        term = (term_part[0], term_part[1])
+      else:
+        raise Exception("dictionary format error")
+      terms.add(term)
+  for term, pos in terms:
+    print >>output, term+'\t'+pos
+  input.close()
+  output.close()
+      
+    
+
 # this is the super class for all text-based network.
 class TextNetwork:
   
@@ -82,8 +108,9 @@ if __name__ == '__main__':
   #network = PeopleTextNetwork()
   #network.processTerms('/data/data/ChinaMedia/people-3-network/termtiger.raw')
   #network.outputRelation('/data/data/ChinaMedia/people-3-network/tiger.csv')
-  network = TianyaTextNetwork()
-  network.processTerms('/data/data/ChinaMedia/tianya-news-5-network/termflesh.raw')
-  network.outputRelation('/data/data/ChinaMedia/tianya-news-5-network/flesh.csv')
+  #network = TianyaTextNetwork()
+  #network.processTerms('/data/data/ChinaMedia/tianya-news-5-network/termflesh.raw')
+  #network.outputRelation('/data/data/ChinaMedia/tianya-news-5-network/flesh.csv')
+  generate_userdict()
   
   
