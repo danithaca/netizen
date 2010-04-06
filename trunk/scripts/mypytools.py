@@ -32,15 +32,15 @@ def gbk_to_utf8(dir):
 
 # filter string in a line, and then sort
 def filter_sort(filename, filter_str, sort_field_index):
-	f = open(filename, 'r')
-	lst=[]
-	for line in f:
-		if line.find(filter_str) != -1:
-			line = line.strip()
-			fields = line.split(',')
-			lst.append((int(fields[sort_field_index]), line))
-	lst = sorted(lst, lambda x,y: cmp(x[0],y[0]), None, True)
-	for i in lst: print i[1]
+  f = open(filename, 'r')
+  lst=[]
+  for line in f:
+    if line.find(filter_str) != -1:
+      line = line.strip()
+      fields = line.split(',')
+      lst.append((int(fields[sort_field_index]), line))
+  lst = sorted(lst, lambda x,y: cmp(x[0],y[0]), None, True)
+  for i in lst: print i[1]
 
   
 

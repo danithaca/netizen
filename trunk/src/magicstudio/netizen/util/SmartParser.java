@@ -34,6 +34,7 @@ public class SmartParser {
 		}
 		if (configPath == null) {
 			configPath = System.getenv("ICTCLAS_HOME");
+			System.out.println(configPath);
 		}
 		
 		ictclasInstance = new ICTCLAS30();
