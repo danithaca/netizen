@@ -6,9 +6,10 @@ import org.apache.lucene.store.*;
 import org.apache.lucene.analysis.cn.smart.*;
 
 println "Running scripts"
-XmlToRawTxt('/data/data/ChinaMedia/tianya-news-5-tiger', '/dev/null', '/data/data/ChinaMedia/tianya-news-5-tiger-txt')
+//XmlToRawTxt('/data/data/ChinaMedia/tianya-news-5-tiger', '/dev/null', '/data/data/ChinaMedia/tianya-news-5-tiger-txt')
 //ExtractKeywordsRawByThread('C:\\Download\\news5-sanlu-xml', 'C:\\Download')
 //LuceneIndex('/data/data/ChinaMedia/tianya-news-5-xml', '/data/data/ChinaMedia/tianya-news-5-firstonly-lucene')
+OutputTermPosition('data-milk-tianya', 'milkterms.txt')
 
 ////////////////// functions //////////////
 
@@ -346,4 +347,48 @@ String stripNonValidXMLCharacters(String input) {
             out.append(current);
     }
     return out.toString();
+}
+
+
+//read files from folder, output analyzed terms to a file.
+// for future network processing
+def OutputTermPosition(srcPath, outputFilename) {
+	srcDir = new File(srcPath);
+	output = new File(outputFilename)
+	header = ['threadid', 'position', 'term', 'pos']
+	output.append(header.join('\t')+'\n')
+	analyzer = new SmartParser()
+	count = 0
+	
+	srcDir.eachFile { file ->
+		try {
+			threadid = ((file.getName() =~ /(\d+).txt$/)[0][1]).toInteger()
+		} catch (Exception e) {
+			println "Skip file ${txtFile.getName()}"
+			return
+		}
+		s = file.getText('GB2312')
+		ss = new StringBuilder()
+		s.eachLine { line ->
+			// remove the title bar line
+			if (line.startsWith("* * * * * * * * * * >>>>>>>>>>")) {
+				line = "* - "*25
+			}
+			ss.append(line).append('\n')
+		}
+		println ss.toString()
+		terms = analyzer.splitTerms(ss.toString())
+
+		position = 0
+		for (term in terms) {
+			t = term.getTerm()
+			if (t=='*' || t=='-') continue;
+			p = term.getPosId()
+			row = [threadid, position, t, p]
+			output.append(row.join('\t')+'\n')
+			position++;
+		}
+		if (count%100 == 0) println "Processing articles: ${count}"
+		count++
+	}
 }

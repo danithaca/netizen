@@ -121,7 +121,7 @@ def OutputTermPosition(srcPath, outputFilename) {
 			println "Skip file ${txtFile.getName()}"
 			return
 		}
-		s = file.getText('utf8')
+		s = file.getText('gbk')
 		terms = analyzer.splitTerms(s)
 
 		position = 0
