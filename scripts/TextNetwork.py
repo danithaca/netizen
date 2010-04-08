@@ -25,7 +25,7 @@ def generate_userdict():
     print >>output, term+'\t'+pos
   input.close()
   output.close()
-  
+
 # return the synonym dictionary: dic[word]='typical word'
 def generate_synonyms():
   input = open('dictionary.txt', 'r')
@@ -35,27 +35,29 @@ def generate_synonyms():
     if line.startswith('#') or line=='': continue
     term_synonyms = line.split(',')
     if len(term_synonyms)<2: continue
-    term_synonyms = [term]
-    
+    term_synonyms = [t[0:t.rfind('|')] if t.rfind('|')!=-1 else t for t in term_synonyms]
+    term_synonyms = [t[1:] if t.startswith('-') else t for t in term_synonyms]
+
     key_term = term_synonyms[0]
     del term_synonyms[0]
     for other_term in term_synonyms:
-      if other_term.startswith('-'): other_term = other_term[1:]
       if other_term in terms:
         raise Exception("duplicate entry in dictionary. line: "+line)
       else:
         terms[other_term] = key_term
   input.close()
   return terms
-      
+
 # default definition for a simple node
 class Node:
   separator = '\t'
   header = ['threadid', 'position', 'term', 'pos']
-  
+  # initialize synonyms for the class
+  synonyms = generate_synonyms()
+
   def __init__(self, id):
     self.id = id
-  
+
   def __cmp__(self, other):
     if self.id < other.id:
       return -1
@@ -63,20 +65,24 @@ class Node:
       return 1
     else:
       return 0
-  
+
   @staticmethod
   def verifyHeader(line):
     h = line.split(Node.separator)
     return h == Node.header
-  
+
+  # note: will take care of synonyms
   @staticmethod
   def extractNode(line):
     node = Node(None) # empty node
     a1, a2, a3, a4 = line.split(Node.separator)
     node.threadid, node.position, node.term, node.pos  = int(a1), int(a2), a3, int(a4)
+    # use the key_term if there's synonym available
+    if node.term in Node.synonyms:
+      node.term = Node.synonyms[node.term]
     node.id = node.term
     return node
-  
+
   # test whether a term should be skipped.
   # only not skip nouns and user defined words (>99)
   def skippable(self):
@@ -86,27 +92,27 @@ class Node:
       return False
     else:
       return True
-  
+
 
 class Edge:
-  
+
   def __init__(self, node1, node2):
     self.node1 = node1
     self.node2 = node2
     self.id = (self.node1.id, self.node2.id)
     self.weight = 0
-  
+
   def __cmp__(self, other):
     return self.id.__cmp__(other.id)
-  
+
   def selfloop(self):
     return self.node1 == self.node2
-  
+
   def skippable(self):
     # only remove the 1-timers
     if self.weight<2: return True
     else: return False
-  
+
   def toString(self):
     return "%s,%s,%s" % (self.node1.id, self.node2.id, self.weight)
 
@@ -122,10 +128,10 @@ class UndirectedEdge(Edge):
 
 # this is the super class for all text-based network.
 class TextNetwork:
-  
+
   nodeclass = Node
   edgeclass = UndirectedEdge
-    
+
   # output csv file
   def outputCSV(self, dst):
     dst = open(dst, 'w')
@@ -133,22 +139,44 @@ class TextNetwork:
       if edge.skippable(): continue
       print >> dst, edge.toString()
     dst.close()
-  
-      
+
+  def outputPajek(self, output):
+    nodes = []
+    edges = []
+    for key, edge in self.edges.items():
+      if edge.node1 not in nodes:
+        n1 = len(nodes)
+        nodes.append(edge.node1)
+      else:
+        n1 = nodes.index(edge.node1)
+      if edge.node2 not in nodes:
+        n2 = len(nodes)
+        nodes.append(edge.node2)
+      else:
+        n2 = nodes.index(edge.node2)
+      edges.append((n1, n2, edge.weight))
+
+    output = open(output, 'w')
+    print >>output, "Vertexes    ", len(nodes)
+    for n in nodes:
+
+
+
   def run(self, input, output):
     self.processTerms(input)
-    self.outputCSV(output)
-  
+    #self.outputCSV(output)
+    self.outputPajek(output)
+
   # process from terms file generated from the corpus
   def processTerms(self, terms_file):
     terms_file = open(terms_file, 'r')
     header = terms_file.readline().strip()
     assert self.nodeclass.verifyHeader(header)
-    
+
     self.current_threadid = None
     # a list of the edges we are interested in.
     self.edges = {}
-    
+
     for line in terms_file:
       try:
         node = self.nodeclass.extractNode(line.strip())
@@ -156,13 +184,13 @@ class TextNetwork:
         print "error line:", line
         continue
       if node.skippable(): continue
-      
+
       if node.threadid != self.current_threadid:
         # start processing the new thread
         self.current_threadid = node.threadid
         self.window = []
         self.window.append(node)
-      
+
       else:
         for i in xrange(len(self.window)-1, -1, -1):
           othernode = self.window[i]
@@ -192,6 +220,7 @@ if __name__ == '__main__':
   #network.processTerms('/data/data/ChinaMedia/tianya-news-5-network/termflesh.raw')
   #network.outputRelation('/data/data/ChinaMedia/tianya-news-5-network/flesh.csv')
   #generate_userdict()
-  network = TianyaTextNetwork()
-  network.run('../milk-tianya-terms.txt', '../milk.csv')
-  
+  #network = TianyaTextNetwork()
+  #network.run('../milk-tianya-terms.txt', '../milk.csv')
+  print generate_synonyms()
+
