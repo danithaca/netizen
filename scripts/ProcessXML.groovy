@@ -9,7 +9,7 @@ println "Running scripts"
 //XmlToRawTxt('/data/data/ChinaMedia/tianya-news-5-tiger', '/dev/null', '/data/data/ChinaMedia/tianya-news-5-tiger-txt')
 //ExtractKeywordsRawByThread('C:\\Download\\news5-sanlu-xml', 'C:\\Download')
 //LuceneIndex('/data/data/ChinaMedia/tianya-news-5-xml', '/data/data/ChinaMedia/tianya-news-5-firstonly-lucene')
-OutputTermPosition('data-milk-tianya', 'milkterms.txt')
+OutputTermPosition('data-tiger-tianya', 'tigerterms.txt')
 
 ////////////////// functions //////////////
 
@@ -367,28 +367,28 @@ def OutputTermPosition(srcPath, outputFilename) {
 			println "Skip file ${txtFile.getName()}"
 			return
 		}
-		s = file.getText('GB2312')
+		s = file.getText('GBK')
 		ss = new StringBuilder()
 		s.eachLine { line ->
 			// remove the title bar line
 			if (line.startsWith("* * * * * * * * * * >>>>>>>>>>")) {
-				line = "* - "*25
+				line = "+ - "*25
 			}
 			ss.append(line).append('\n')
 		}
-		println ss.toString()
+		//println ss.toString()
 		terms = analyzer.splitTerms(ss.toString())
 
 		position = 0
 		for (term in terms) {
 			t = term.getTerm()
-			if (t=='*' || t=='-') continue;
+			//if (t=='*' || t=='-') continue;
 			p = term.getPosId()
 			row = [threadid, position, t, p]
 			output.append(row.join('\t')+'\n')
 			position++;
 		}
-		if (count%100 == 0) println "Processing articles: ${count}"
+		println "Processing articles: ${count}"
 		count++
 	}
 }

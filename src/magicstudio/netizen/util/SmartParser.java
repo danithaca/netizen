@@ -92,7 +92,7 @@ public class SmartParser {
 	}
 	
 	public void loadUserDict(String dictName) {
-		dictName = configPath + File.pathSeparator + dictName;
+		dictName = configPath + File.separator + dictName;
 		if (!(new File(dictName)).exists()) {
 			throw new RuntimeException("Can't load user dictionary at "+dictName);
 		}
@@ -153,7 +153,7 @@ public class SmartParser {
 		}
 		@Override
 		public String toString() {
-			return "<"+term+", "+pos+">";
+			return "<"+term+", "+pos+"|"+getPosId()+">";
 		}
 	}
 	

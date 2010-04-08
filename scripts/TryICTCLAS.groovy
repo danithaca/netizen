@@ -1,9 +1,12 @@
+import java.io.File;
+
 import magicstudio.netizen.util.SmartParser;
 
 //println System.getProperties().getProperty('java.library.path')
 
 def sp = new SmartParser()
-def s = sp.splitRaw("你好北京")
+sp.loadUserDict()
+def s = sp.splitTerms("你好北京人肉")
 //def s = sp.splitRaw("Hello Beijing")
 println s
 ////sp.loadUserDict();
