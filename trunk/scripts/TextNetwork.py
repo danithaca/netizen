@@ -141,24 +141,37 @@ class TextNetwork:
     dst.close()
 
   def outputPajek(self, output):
+    print "generating network file"
     nodes = []
+    nodesindex = {}
     edges = []
     for key, edge in self.edges.items():
-      if edge.node1 not in nodes:
-        n1 = len(nodes)
+      if edge.skippable(): continue
+      if edge.node1.id not in nodesindex:
         nodes.append(edge.node1)
+        n1 = len(nodes)
+        nodesindex[edge.node1.id] = n1
       else:
-        n1 = nodes.index(edge.node1)
-      if edge.node2 not in nodes:
-        n2 = len(nodes)
+        n1 = nodesindex[edge.node1.id]
+      if edge.node2.id not in nodesindex:
         nodes.append(edge.node2)
+        n2 = len(nodes)
+        nodesindex[edge.node2.id] = n2
       else:
-        n2 = nodes.index(edge.node2)
+        n2 = nodesindex[edge.node2.id]
       edges.append((n1, n2, edge.weight))
 
+    count = 1
     output = open(output, 'w')
-    print >>output, "Vertexes    ", len(nodes)
+    print >>output, "*Vertices    ", len(nodes)
     for n in nodes:
+      print >>output, count, '"'+n.term+'"'
+      count += 1
+    print >>output, "*Arcs"
+    print >>output, "*Edgeds"
+    for e in edges:
+      print >>output, e[0], e[1], e[2]
+    output.close()
 
 
 
@@ -207,12 +220,25 @@ class TextNetwork:
           else:
             break
         self.window.append(node)
+    # remove skippable edges
+    removable = []
+    for edge_id in self.edges:
+      if self.edges[edge_id].skippable():
+        removable.append(edge_id)
+    for id in removable:
+      del self.edges[id]
 
+
+class SimplifiedUndirectedEdge(UndirectedEdge):
+  def skippable(self):
+    if self.weight<=5: return True
+    else: return False
 
 # inherited from the basic textnetwork
 class PeopleTextNetwork(TextNetwork): pass
 
-class TianyaTextNetwork(TextNetwork): pass
+class TianyaTextNetwork(TextNetwork):
+  edgeclass = SimplifiedUndirectedEdge
 
 
 if __name__ == '__main__':
@@ -220,7 +246,7 @@ if __name__ == '__main__':
   #network.processTerms('/data/data/ChinaMedia/tianya-news-5-network/termflesh.raw')
   #network.outputRelation('/data/data/ChinaMedia/tianya-news-5-network/flesh.csv')
   #generate_userdict()
-  #network = TianyaTextNetwork()
-  #network.run('../milk-tianya-terms.txt', '../milk.csv')
-  print generate_synonyms()
+  network = TianyaTextNetwork()
+  network.run('../tiger-tianya-terms.txt', '../tiger.net')
+  #print generate_synonyms()
 
