@@ -70,6 +70,27 @@ def cleanup_url_file(infiles, outfile):
     f.close()
   out.close()
   print "Total lines:", count
+
+# generate incremental url file based on the difference between the old and new files
+def generate_incremental_url_file(newfile, oldfile, outfile):
+  out = open(outfile, 'w')
+  f1 = open(newfile, 'r')
+  f2 = open(oldfile, 'r')
+  n1 = set([])
+  for line in f1:
+    n1.add(line.strip())
+  print "new file: ", len(n1)
+  n2 = set([])
+  for line in f2:
+    n2.add(line.strip())
+  print "old file: ", len(n2)
+  n = n1 - n2
+  print "difference", len(n)
+  for line in n:
+    print >>out, line
+  f1.close()
+  f2.close()
+  out.close()
   
   
 def split_url_file(infile, size):
@@ -86,6 +107,7 @@ def split_url_file(infile, size):
 
 
 if __name__ == '__main__':
-    #cleanup_url_file(["D:\\Download\\people-urls.txt"], "D:\\Download\\people-clean-urls.txt")
+    #cleanup_url_file(["N:\\Download\\urls.txt"], "N:\\Download\\tianya-news6-clean-urls.txt")
     #split_url_file("D:\\Download\\people-clean-urls.txt", 20000)
-    tianya_next_urls_simple()
+    #tianya_next_urls_simple()
+    generate_incremental_url_file("N:/Download/urls.txt", "N:/Download/tianya-news-urls-clean.txt", "N:/Download/tianya-news6-clean-urls.txt")
