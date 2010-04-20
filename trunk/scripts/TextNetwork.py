@@ -168,7 +168,7 @@ class TextNetwork:
       print >>output, count, '"'+n.term+'"'
       count += 1
     print >>output, "*Arcs"
-    print >>output, "*Edgeds"
+    print >>output, "*Edges"
     for e in edges:
       print >>output, e[0], e[1], e[2]
     output.close()

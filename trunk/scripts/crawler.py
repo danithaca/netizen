@@ -87,4 +87,5 @@ def split_url_file(infile, size):
 
 if __name__ == '__main__':
     #cleanup_url_file(["D:\\Download\\people-urls.txt"], "D:\\Download\\people-clean-urls.txt")
-    split_url_file("D:\\Download\\people-clean-urls.txt", 20000)
+    #split_url_file("D:\\Download\\people-clean-urls.txt", 20000)
+    tianya_next_urls_simple()
