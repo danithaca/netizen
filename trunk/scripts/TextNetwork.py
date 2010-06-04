@@ -194,7 +194,6 @@ class UserDictNode(Node):
   # test whether a term should be skipped.
   # only not skip nouns and user defined words (>99)
   def skippable(self):
-    if self.term in ['/', '*']: return True
     if self.pos.startswith('zz'):
       #if re.match('\W+', self.term, re.UNICODE): return True
       return False
