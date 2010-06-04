@@ -1,7 +1,4 @@
 # coding: utf8
-
-# TODO: multiple pos for the same term is not supported
-# TODO: need to refactor the process of reading terms and constructing network. i.e. processTerms()
  
 import re, sys
 
@@ -38,7 +35,9 @@ def generate_synonyms():
     if line.startswith('#') or line=='': continue
     term_synonyms = line.split(',')
     if len(term_synonyms)<2: continue
+    # remove the |zz pos info
     term_synonyms = [t[0:t.rfind('|')] if t.rfind('|')!=-1 else t for t in term_synonyms]
+    # remove the prefix '-' which preclude the term in the dictionary.
     term_synonyms = [t[1:] if t.startswith('-') else t for t in term_synonyms]
 
     key_term = term_synonyms[0]
@@ -159,14 +158,8 @@ class Node:
 
   def __init__(self, id):
     self.id = id
-
   def __cmp__(self, other):
-    if self.id < other.id:
-      return -1
-    elif self.id > other.id:
-      return 1
-    else:
-      return 0
+    return cmp(self.id, other.id)
 
   @staticmethod
   def verifyHeader(line):
@@ -181,8 +174,10 @@ class Node:
     assert len(fields) == len(Node.header)
     a1, a2, a3, a4 = fields
     # sometimes a term leads by a space (GBK encoding), we got to remove those
-    node.threadid, node.position, node.term, node.pos  = int(a1), int(a2), a3.strip(ur"　"), a4
+    # note that only the term is used by Edge/Network now. position/pos/threadid are only used in the processTerms() function
+    node.threadid, node.position, node.term, node.pos  = int(a1), int(a2), a3.strip().strip(ur"　"), a4
     # use the key_term if there's synonym available
+    # TODO: verify there's no coding problem between UTF8 and GBK
     if node.term in Node.synonyms:
       node.term = Node.synonyms[node.term]
       # FIXME: this will arbitrarily set pos, which is not right.
@@ -190,6 +185,12 @@ class Node:
     node.id = node.term
     return node
 
+  def skippable(self):
+    # don't skip anything
+    return False
+
+
+class UserDictNode(Node):
   # test whether a term should be skipped.
   # only not skip nouns and user defined words (>99)
   def skippable(self):
@@ -208,18 +209,14 @@ class Edge:
     self.node2 = node2
     self.id = (self.node1.id, self.node2.id)
     self.weight = 0
-
   def __cmp__(self, other):
     return self.id.__cmp__(other.id)
-
   def selfloop(self):
     return self.node1 == self.node2
-
   def skippable(self):
     # only remove the 1-timers
     if self.weight<2: return True
     else: return False
-
   def toString(self):
     return "%s,%s,%s" % (self.node1.id, self.node2.id, self.weight)
 
@@ -236,7 +233,7 @@ class UndirectedEdge(Edge):
 # this is the super class for all text-based network.
 class TextNetwork:
 
-  nodeclass = Node
+  nodeclass = UserDictNode
   edgeclass = UndirectedEdge
 
   # output csv file
@@ -288,6 +285,7 @@ class TextNetwork:
     self.outputPajek(output)
 
   # process from terms file generated from the corpus
+  # this is to use the 50-words window method. override if needed.
   def processTerms(self, terms_file):
     terms_file = open(terms_file, 'r')
     header = terms_file.readline().strip()
@@ -325,9 +323,11 @@ class TextNetwork:
               edge.weight = 1
               self.edges[edge.id] = edge
           else:
+            # we won't iterate thru the earlier terms in the window
             break
         self.window.append(node)
-    # remove skippable edges
+    
+    # finish processing the lines in the term file. remove skippable edges
     removable = []
     for edge_id in self.edges:
       if self.edges[edge_id].skippable():
@@ -336,25 +336,35 @@ class TextNetwork:
       del self.edges[id]
 
 
-class SimplifiedUndirectedEdge(UndirectedEdge):
-  def skippable(self):
-    if self.weight<=5: return True
-    else: return False
-
 # inherited from the basic textnetwork
+# undirected edge, remove edges w/ weight<2, only using UserDictionary.
 class PeopleTextNetwork(TextNetwork): pass
 
 class TianyaTextNetwork(TextNetwork):
+  class SimplifiedUndirectedEdge(UndirectedEdge):
+    def skippable(self):
+      if self.weight<=5: return True
+      else: return False
+  edgeclass = SimplifiedUndirectedEdge
+
+
+class TianyaFullNetwork(TextNetwork):
+  class SimplifiedUndirectedEdge(UndirectedEdge):
+    def skippable(self):
+      if self.weight<=10: return True
+      else: return False
   edgeclass = SimplifiedUndirectedEdge
 
 
 if __name__ == '__main__':
-  network = PeopleTextNetwork()
-  network.run('../data/milkpeopleterms.txt', '../data/milkpeople.net')
+  #network = PeopleTextNetwork()
+  #network.run('../data/milkpeopleterms.txt', '../data/milkpeople.net')
   #generate_userdict()
   #network = TianyaTextNetwork()
   ##network.run('../tiger-tianya-terms.txt', '../tiger.net')
-  #print generate_synonyms()
+  l = generate_synonyms()
+  for k,v in l.items(): print k,':',v
+  
 
   # v2 is the simplified terms
   #aggregate_terms_usage(['../data/tigerpeopleterms.txt', '../data/milkpeopleterms.txt'], '../data/peopletermsusage.txt')
