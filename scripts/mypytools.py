@@ -61,12 +61,24 @@ def rolling_sum(alist, step):
   return results
 
 
+def remove_empty_lines(file):
+  f = open(file, 'r')
+  lines = f.readlines()
+  f.close()
+  f = open(file, 'w')
+  for l in lines:
+    if l.strip()=='': continue
+    print >>f, l,
+  f.close()
+
 
 if __name__ == '__main__':
   #p = [0.5, 0.1, 0.4]
   #q = [0.2, 0.5, 0.3]
   #print kl_divergence(p, q)
-  print rolling_sum([1,2,3,4,5], 3)
+  #print rolling_sum([1,2,3,4,5], 3)
 
   #r = '/Users/danithaca/Desktop/tianya/'
   #random_sample_files([r+'tiger-txt', r+'milk-txt'], r+'random70', 70)
+  
+  remove_empty_lines('../data/termsusage_v2.1.txt')

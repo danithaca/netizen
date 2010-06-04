@@ -252,6 +252,7 @@ if __name__ == '__main__':
   #sys.setdefaultencoding("utf-8")
   #test_bsoup()
   #tianya_news_to_xml("C:\\Download\\tianya-news5\\100002.shtml", 'C:\\Download\\')
-  tianya_news_transform_folder("/data/data/ChinaMedia/tianya-news-5", "/data/data/ChinaMedia/tianya-news-5-xml")
+  #tianya_news_transform_folder("/data/data/ChinaMedia/tianya-news-5", "/data/data/ChinaMedia/tianya-news-5-xml")
+  tianya_news_transform_folder("../tianya-news-6", "../tianya-news-6-xml")
   #print_error_file()
   
