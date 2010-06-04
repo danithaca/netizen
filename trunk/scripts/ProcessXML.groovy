@@ -6,10 +6,13 @@ import org.apache.lucene.store.*;
 import org.apache.lucene.analysis.cn.smart.*;
 
 println "Running scripts"
-//XmlToRawTxt('/data/data/ChinaMedia/tianya-news-5-tiger', '/dev/null', '/data/data/ChinaMedia/tianya-news-5-tiger-txt')
+//XmlToRawTxt('tiger', './', 'tigert')
 //ExtractKeywordsRawByThread('C:\\Download\\news5-sanlu-xml', 'C:\\Download')
-//LuceneIndex('/data/data/ChinaMedia/tianya-news-5-xml', '/data/data/ChinaMedia/tianya-news-5-firstonly-lucene')
-OutputTermPosition('data-tiger-tianya', 'tigerterms.txt')
+//LuceneIndex('tianya-news-c56-xml', 'lucene-part')
+//OutputTermPosition('data/milk-selected', 'data/milkterms.txt')
+
+// generate terms for people
+OutputTermPosition('data/tiger-people', 'data/tigerpeopleterms.txt')
 
 ////////////////// functions //////////////
 
@@ -43,10 +46,11 @@ def LuceneIndex(xmlPath, lucenePath) {
 			firsttime = parseDate(thread.'@firsttime')
 
 			// hack: skip time
-			starttime = new Date().parse("yyyy-M-d", "2007-10-1")
+			//starttime = new Date().parse("yyyy-M-d", "2007-10-1")
 			endtime = new Date().parse("yyyy-M-d", "2009-3-1")
-			if (firsttime.before(starttime) || firsttime.after(endtime)) { continue }
-
+			//if (firsttime.before(starttime) || firsttime.after(endtime)) { continue }
+			if (firsttime.before(endtime)) {continue}
+			
 			firstauthor = stripXML(thread.'@firstauthor')
 			doc = GenerateLuceneDoc(index, firsttime, firstauthor, title, 1)
 			indexWriter.addDocument(doc)
@@ -358,6 +362,7 @@ def OutputTermPosition(srcPath, outputFilename) {
 	header = ['threadid', 'position', 'term', 'pos']
 	output.append(header.join('\t')+'\n')
 	analyzer = new SmartParser()
+	analyzer.loadUserDict()
 	count = 0
 	
 	srcDir.eachFile { file ->
@@ -367,12 +372,15 @@ def OutputTermPosition(srcPath, outputFilename) {
 			println "Skip file ${txtFile.getName()}"
 			return
 		}
-		s = file.getText('GBK')
+		// for Tianya's data, it's GBK. for People's Daily, it's UTF8
+		s = file.getText('UTF8')
 		ss = new StringBuilder()
 		s.eachLine { line ->
 			// remove the title bar line
 			if (line.startsWith("* * * * * * * * * * >>>>>>>>>>")) {
-				line = "+ - "*25
+				// in order to add position of 50. i.e., new post will be 50 words away from the previous post
+				//line = "+ - "*25
+				line = ""
 			}
 			ss.append(line).append('\n')
 		}
@@ -383,7 +391,7 @@ def OutputTermPosition(srcPath, outputFilename) {
 		for (term in terms) {
 			t = term.getTerm()
 			//if (t=='*' || t=='-') continue;
-			p = term.getPosId()
+			p = term.getPos()
 			row = [threadid, position, t, p]
 			output.append(row.join('\t')+'\n')
 			position++;

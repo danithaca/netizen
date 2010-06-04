@@ -41,7 +41,7 @@ public class SmartParser {
 		if (!ictclasInstance.ICTCLAS_Init(configPath.getBytes(defaultEncoding))) {
 			throw new RuntimeException("Cannot initialize ICTCLAS30");
 		}
-		setPosMapping(1, "pos_map.TXT");
+		setPosMapping(0, "pos_map.TXT");
 	}
 	
 	/*
@@ -164,7 +164,7 @@ public class SmartParser {
 	 */
 	public List<Term> splitTerms(String input) {
 		List<Term> list = new ArrayList<Term>();
-		Pattern pattern = Pattern.compile("(.+?)/([a-zA-Z]+?)\\s+?", Pattern.MULTILINE);
+		Pattern pattern = Pattern.compile("(.+?)/([a-zA-Z0-9]+?)\\s+?", Pattern.MULTILINE);
 		String raw = splitRaw(input);
 		Matcher matcher = pattern.matcher(raw);
 		while (matcher.find()) {
