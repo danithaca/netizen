@@ -6,13 +6,13 @@ import org.apache.lucene.store.*;
 import org.apache.lucene.analysis.cn.smart.*;
 
 println "Running scripts"
-//XmlToRawTxt('tiger', './', 'tigert')
+//XmlToRawTxt('data/tianya-news-c56-xml', './', 'data4tech/tianya-news-c56-txt')
 //ExtractKeywordsRawByThread('C:\\Download\\news5-sanlu-xml', 'C:\\Download')
 //LuceneIndex('tianya-news-c56-xml', 'lucene-part')
-//OutputTermPosition('data/milk-selected', 'data/milkterms.txt')
+OutputTermPosition('data4tech/tianya-news-c56-txt', 'data4tech/tianyaterms.txt')
 
 // generate terms for people
-OutputTermPosition('data/tiger-people', 'data/tigerpeopleterms.txt')
+//OutputTermPosition('data/tiger-people', 'data/tigerpeopleterms.txt')
 
 ////////////////// functions //////////////
 
@@ -271,12 +271,12 @@ def XmlToRawTxt(srcPath, rawPath, txtPath) {
 			def responses = (s = thread.'@responses') ? s.toInteger() : 0
 			def samelinks = (s = thread.'@samelinks') ? s.split(',').collect({it.toInteger()}) : null
 			//if (samelinks) {println "Has links!!!"}
-			/*if (samelinks!=null && samelinks.min()<index) {
+			if (samelinks!=null && samelinks.min()<index) {
 				index = samelinks.min() // then we just use the smallest post
 			} else {
-				row = [index, '"'+title.replace('"', '\'')+'"', "\"${firstauthor}\"", "\"${firsttime.format('yyyy-MM-dd HH:mm:ss')}\"", visits, responses].join('\t')
-				threadFile.append(row+'\n')
-			}*/
+				//row = [index, '"'+title.replace('"', '\'')+'"', "\"${firstauthor}\"", "\"${firsttime.format('yyyy-MM-dd HH:mm:ss')}\"", visits, responses].join('\t')
+				///threadFile.append(row+'\n')
+			}
 			
 			// create/reuse text file
 			//def txtFile = new File("${txtPath}/${firsttime.format('yyyyMMdd')}-${title.replaceAll(~/\p{Punct}/, '')}.txt")
@@ -289,11 +289,11 @@ def XmlToRawTxt(srcPath, rawPath, txtPath) {
 				def content = stripXML(post.text())
 				row = [index, "\"${author}\"", "\"${time.format('yyyy-MM-dd HH:mm:ss')}\"", content.size()]
 				//postFile.append(row.join('\t')+'\n')
-				txtFile.append('>>>>>>>>>> '+row[1..2].join('\t')+'\r\n\r\n')
+				//txtFile.append('>>>>>>>>>> '+row[1..2].join('\t')+'\r\n\r\n')
 				//txtFile.append('* '*50)
 				//txtFile.append(title+'\n\n')
 				txtFile.append(content+'\r\n\r\n')
-				txtFile.append('* '*10)
+				txtFile.append('* '*25+'\r\n')
                 // hack: only include the first post
                 //break;
 			}
@@ -373,7 +373,7 @@ def OutputTermPosition(srcPath, outputFilename) {
 			return
 		}
 		// for Tianya's data, it's GBK. for People's Daily, it's UTF8
-		s = file.getText('UTF8')
+		s = file.getText('GBK')
 		ss = new StringBuilder()
 		s.eachLine { line ->
 			// remove the title bar line
