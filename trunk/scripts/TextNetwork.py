@@ -1,6 +1,7 @@
 # coding: utf8
  
-import re, sys
+import re, sys, traceback
+import gc # enable garbage collectino
 
 # from the dictionary file, generate the userdict.txt file
 def generate_userdict():
@@ -175,7 +176,7 @@ class Node:
     a1, a2, a3, a4 = fields
     # sometimes a term leads by a space (GBK encoding), we got to remove those
     # note that only the term is used by Edge/Network now. position/pos/threadid are only used in the processTerms() function
-    node.threadid, node.position, node.term, node.pos  = int(a1), int(a2), a3.strip().strip(ur"　"), a4
+    node.threadid, node.position, node.term, node.pos  = int(a1), int(a2), a3.strip().strip('\xa1\xa1'), a4
     # use the key_term if there's synonym available
     # TODO: verify there's no coding problem between UTF8 and GBK
     if node.term in Node.synonyms:
@@ -279,6 +280,7 @@ class TextNetwork:
 
 
   def run(self, input, output):
+    gc.enable()
     self.processTerms(input)
     #self.outputCSV(output)
     self.outputPajek(output)
@@ -286,31 +288,40 @@ class TextNetwork:
   # process from terms file generated from the corpus
   # this is to use the 50-words window method. override if needed.
   def processTerms(self, terms_file):
+    print "processing terms"
     terms_file = open(terms_file, 'r')
     header = terms_file.readline().strip()
     assert self.nodeclass.verifyHeader(header)
 
-    self.current_threadid = None
+    current_threadid = None
+    window = []
     # a list of the edges we are interested in.
     self.edges = {}
-
+    
+    count = 0
+    COUNTALERT=10000
     for line in terms_file:
+      if count%COUNTALERT == 0: print "processing line", count
+      count += 1
+
       try:
         node = self.nodeclass.extractNode(line.strip())
       except:
+        #traceback.print_exc()
         print "error line:", line
         continue
       if node.skippable(): continue
 
-      if node.threadid != self.current_threadid:
+      if node.threadid != current_threadid:
         # start processing the new thread
-        self.current_threadid = node.threadid
-        self.window = []
-        self.window.append(node)
+        current_threadid = node.threadid
+        del window # hope to trigger garbage collection
+        window = []
+        window.append(node)
 
       else:
-        for i in xrange(len(self.window)-1, -1, -1):
-          othernode = self.window[i]
+        for i in xrange(len(window)-1, -1, -1):
+          othernode = window[i]
           # window size is 50
           if node.position - othernode.position <= 50:
             edge = (self.edgeclass)(node, othernode)
@@ -324,7 +335,7 @@ class TextNetwork:
           else:
             # we won't iterate thru the earlier terms in the window
             break
-        self.window.append(node)
+        window.append(node)
     
     # finish processing the lines in the term file. remove skippable edges
     removable = []
@@ -350,19 +361,21 @@ class TianyaTextNetwork(TextNetwork):
 class TianyaFullNetwork(TextNetwork):
   class SimplifiedUndirectedEdge(UndirectedEdge):
     def skippable(self):
-      if self.weight<=10: return True
+      if self.weight<=20: return True
       else: return False
   edgeclass = SimplifiedUndirectedEdge
 
+class PeopleFullNetwork(TianyaFullNetwork): pass
+
 
 if __name__ == '__main__':
-  #network = PeopleTextNetwork()
-  #network.run('../data/milkpeopleterms.txt', '../data/milkpeople.net')
+  network = PeopleFullNetwork()
+  network.run('/home/mrzhou/data/data4tech/peopleterms.txt', '/home/mrzhou/data/data4tech/peoplefull.net')
   #generate_userdict()
   #network = TianyaTextNetwork()
   ##network.run('../tiger-tianya-terms.txt', '../tiger.net')
-  l = generate_synonyms()
-  for k,v in l.items(): print k,':',v
+  #l = generate_synonyms()
+  #for k,v in l.items(): print k,':',v
   
 
   # v2 is the simplified terms
