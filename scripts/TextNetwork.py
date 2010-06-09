@@ -2,6 +2,7 @@
  
 import re, sys, traceback
 import gc # enable garbage collectino
+from collections import defaultdict
 
 # from the dictionary file, generate the userdict.txt file
 def generate_userdict():
@@ -235,6 +236,7 @@ class TextNetwork:
 
   nodeclass = UserDictNode
   edgeclass = UndirectedEdge
+  window_size = 50
 
   # output csv file
   def outputCSV(self, dst):
@@ -276,7 +278,6 @@ class TextNetwork:
     for e in edges:
       print >>output, e[0], e[1], e[2]
     output.close()
-
 
 
   def run(self, input, output):
@@ -323,7 +324,7 @@ class TextNetwork:
         for i in xrange(len(window)-1, -1, -1):
           othernode = window[i]
           # window size is 50
-          if node.position - othernode.position <= 50:
+          if node.position - othernode.position <= self.window_size:
             edge = (self.edgeclass)(node, othernode)
             if edge.selfloop(): continue
             if edge.id in self.edges:
@@ -346,6 +347,75 @@ class TextNetwork:
       del self.edges[id]
 
 
+# specially designed for very large network.
+class LargeTextNetwork(TextNetwork):
+  edgefile = '/tmp/netizen_edge.tmp'
+  
+  # copied directly from TextNetwork.
+  # new development usually goes here
+  def processTerms(self, terms_file):
+    print "processing terms"
+    terms_file = open(terms_file, 'r')
+    header = terms_file.readline().strip()
+    assert self.nodeclass.verifyHeader(header)
+    
+    current_threadid = None
+    window = []
+    # using edgefile as temporary storage for the edges.
+    edgeout = open(self.edgefile, 'w')
+    
+    count = 0
+    COUNTALERT=10000
+    for line in terms_file:
+      if count%COUNTALERT == 0: print "processing line", count
+      count += 1
+
+      try:
+        node = self.nodeclass.extractNode(line.strip())
+      except:
+        #traceback.print_exc()
+        print "error line:", line
+        continue
+      if node.skippable(): continue
+
+      if node.threadid != current_threadid:
+        # start processing the new thread
+        current_threadid = node.threadid
+        del window # hope to trigger garbage collection
+        window = []
+        window.append(node)
+
+      else:
+        for i in xrange(len(window)-1, -1, -1):
+          othernode = window[i]
+          # window size is 50
+          if node.position - othernode.position <= self.window_size:
+            edge = (self.edgeclass)(node, othernode)
+            if edge.selfloop(): continue
+            print >>edgeout, edge.toString()
+          else:
+            # we won't iterate thru the earlier terms in the window
+            break
+        window.append(node)
+    edgeout.close()
+    
+    # finish processing the lines in the term file. remove skippable edges
+    print "FINISH generating the edges. Filtering skippable edges"
+    edgein = open(self.edgefile, 'r')
+    alledges = defaultdict(int)
+    self.edges = {}
+    for line in edgein:
+      line = line.strip()
+      alledges[line] += 1
+    for k, v in alledges:
+      n1, n2, w = k.split(',')
+      edge = (self.edgeclass)((self.nodeclass)(n1), (self.nodeclass)(n2))
+      edge.weight = v
+      if edge.skippable() or edge.selfloop(): continue
+      self.edges[edge.id] = edge
+    
+
+
 # inherited from the basic textnetwork
 # undirected edge, remove edges w/ weight<2, only using UserDictionary.
 class PeopleTextNetwork(TextNetwork): pass
@@ -358,7 +428,7 @@ class TianyaTextNetwork(TextNetwork):
   edgeclass = SimplifiedUndirectedEdge
 
 
-class TianyaFullNetwork(TextNetwork):
+class TianyaFullNetwork(LargeTextNetwork):
   class SimplifiedUndirectedEdge(UndirectedEdge):
     def skippable(self):
       if self.weight<=20: return True
