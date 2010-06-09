@@ -196,6 +196,7 @@ class UserDictNode(Node):
   # test whether a term should be skipped.
   # only not skip nouns and user defined words (>99)
   def skippable(self):
+    print self.id, self.pos
     if self.pos.startswith('zz'):
       #if re.match('\W+', self.term, re.UNICODE): return True
       return False
@@ -407,7 +408,7 @@ class LargeTextNetwork(TextNetwork):
     for line in edgein:
       line = line.strip()
       alledges[line] += 1
-    for k, v in alledges:
+    for k, v in alledges.items():
       n1, n2, w = k.split(',')
       edge = (self.edgeclass)((self.nodeclass)(n1), (self.nodeclass)(n2))
       edge.weight = v
@@ -439,8 +440,12 @@ class PeopleFullNetwork(TianyaFullNetwork): pass
 
 
 if __name__ == '__main__':
-  network = PeopleFullNetwork()
-  network.run('/home/mrzhou/data/data4tech/peopleterms.txt', '/home/mrzhou/data/data4tech/peoplefull.net')
+  n = UserDictNode('1')
+  n.pos = 'zzl'
+  print n.skippable()
+  #network = PeopleFullNetwork()
+  #network.edgefile = ('/home/mrzhou/data/data4tech/peopleedges.txt')
+  #network.run('/home/mrzhou/data/data4tech/peopletest.txt', '/home/mrzhou/data/data4tech/peoplefull.net')
   #generate_userdict()
   #network = TianyaTextNetwork()
   ##network.run('../tiger-tianya-terms.txt', '../tiger.net')
