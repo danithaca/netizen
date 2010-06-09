@@ -9,10 +9,10 @@ println "Running scripts"
 //XmlToRawTxt('data/tianya-news-c56-xml', './', 'data4tech/tianya-news-c56-txt')
 //ExtractKeywordsRawByThread('C:\\Download\\news5-sanlu-xml', 'C:\\Download')
 //LuceneIndex('tianya-news-c56-xml', 'lucene-part')
-OutputTermPosition('data4tech/tianya-news-c56-txt', 'data4tech/tianyaterms.txt')
+OutputTermPosition('/home/mrzhou/data/tianya-news-c56-txt', '/home/mrzhou/data/data4tech/tianyaterms.txt')
 
 // generate terms for people
-//OutputTermPosition('data/tiger-people', 'data/tigerpeopleterms.txt')
+//OutputTermPosition('/home/mrzhou/data/people-3-txt-clean', '/home/mrzhou/data/peopleterms.txt')
 
 ////////////////// functions //////////////
 
@@ -293,7 +293,7 @@ def XmlToRawTxt(srcPath, rawPath, txtPath) {
 				//txtFile.append('* '*50)
 				//txtFile.append(title+'\n\n')
 				txtFile.append(content+'\r\n\r\n')
-				txtFile.append('* '*25+'\r\n')
+				txtFile.append('* '*50+'\r\n')
                 // hack: only include the first post
                 //break;
 			}
@@ -373,7 +373,7 @@ def OutputTermPosition(srcPath, outputFilename) {
 			return
 		}
 		// for Tianya's data, it's GBK. for People's Daily, it's UTF8
-		s = file.getText('GBK')
+		s = file.getText('utf8')
 		ss = new StringBuilder()
 		s.eachLine { line ->
 			// remove the title bar line
