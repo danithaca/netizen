@@ -163,29 +163,25 @@ class Node:
   def __cmp__(self, other):
     return cmp(self.id, other.id)
 
-  @staticmethod
-  def verifyHeader(line):
-    h = line.split(Node.separator)
-    return h == Node.header
+  def verifyHeader(self, line):
+    h = line.split(self.separator)
+    return h == self.header
 
   # note: will take care of synonyms
-  @staticmethod
-  def extractNode(line):
-    node = Node(None) # empty node
-    fields = line.split(Node.separator)
-    assert len(fields) == len(Node.header)
+  def extractLine(self, line):
+    fields = line.split(self.separator)
+    assert len(fields) == len(self.header)
     a1, a2, a3, a4 = fields
     # sometimes a term leads by a space (GBK encoding), we got to remove those
     # note that only the term is used by Edge/Network now. position/pos/threadid are only used in the processTerms() function
-    node.threadid, node.position, node.term, node.pos  = int(a1), int(a2), a3.strip().strip('\xa1\xa1'), a4
+    self.threadid, self.position, self.term, self.pos  = int(a1), int(a2), a3.strip().strip('\xa1\xa1'), a4
     # use the key_term if there's synonym available
     # TODO: verify there's no coding problem between UTF8 and GBK
-    if node.term in Node.synonyms:
-      node.term = Node.synonyms[node.term]
+    if self.term in self.synonyms:
+      self.term = self.synonyms[self.term]
       # FIXME: this will arbitrarily set pos, which is not right.
-      node.pos = 'zz'
-    node.id = node.term
-    return node
+      self.pos = 'zz'
+    self.id = self.term
 
   def skippable(self):
     # don't skip anything
@@ -196,7 +192,6 @@ class UserDictNode(Node):
   # test whether a term should be skipped.
   # only not skip nouns and user defined words (>99)
   def skippable(self):
-    print self.id, self.pos
     if self.pos.startswith('zz'):
       #if re.match('\W+', self.term, re.UNICODE): return True
       return False
@@ -293,7 +288,7 @@ class TextNetwork:
     print "processing terms"
     terms_file = open(terms_file, 'r')
     header = terms_file.readline().strip()
-    assert self.nodeclass.verifyHeader(header)
+    assert (self.nodeclass)(None).verifyHeader(header)
 
     current_threadid = None
     window = []
@@ -307,7 +302,8 @@ class TextNetwork:
       count += 1
 
       try:
-        node = self.nodeclass.extractNode(line.strip())
+        node = (self.nodeclass)(None)
+        node.extractLine(line.strip())
       except:
         #traceback.print_exc()
         print "error line:", line
@@ -358,7 +354,7 @@ class LargeTextNetwork(TextNetwork):
     print "processing terms"
     terms_file = open(terms_file, 'r')
     header = terms_file.readline().strip()
-    assert self.nodeclass.verifyHeader(header)
+    assert (self.nodeclass)(None).verifyHeader(header)
     
     current_threadid = None
     window = []
@@ -372,7 +368,8 @@ class LargeTextNetwork(TextNetwork):
       count += 1
 
       try:
-        node = self.nodeclass.extractNode(line.strip())
+        node = (self.nodeclass)(None)
+        node.extractLine(line.strip())
       except:
         #traceback.print_exc()
         print "error line:", line
@@ -440,12 +437,9 @@ class PeopleFullNetwork(TianyaFullNetwork): pass
 
 
 if __name__ == '__main__':
-  n = UserDictNode('1')
-  n.pos = 'zzl'
-  print n.skippable()
-  #network = PeopleFullNetwork()
-  #network.edgefile = ('/home/mrzhou/data/data4tech/peopleedges.txt')
-  #network.run('/home/mrzhou/data/data4tech/peopletest.txt', '/home/mrzhou/data/data4tech/peoplefull.net')
+  network = PeopleFullNetwork()
+  network.edgefile = ('/home/mrzhou/data/data4tech/peopleedges.txt')
+  network.run('/home/mrzhou/data/data4tech/peopletest.txt', '/home/mrzhou/data/data4tech/peoplefull.net')
   #generate_userdict()
   #network = TianyaTextNetwork()
   ##network.run('../tiger-tianya-terms.txt', '../tiger.net')
