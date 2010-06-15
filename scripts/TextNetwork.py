@@ -95,13 +95,20 @@ def aggregate_terms_usage(files, output):
       return '\t'.join([self.term, pos, str(self.threadoccur), str(self.totaloccur)])
       
   term_usage_dict = {}
+  termheader = ['threadid', 'position', 'term', 'pos']
+  termseparator = '\t'
   for f in files:
-    print "reading file", f
-    terms = read_term_file(f)
-    print "finish reading file", f
+    infile = open(f, 'r')
+    line = infile.readline().strip()
+    assert termheader == line.split(termseparator)
     count = 0
-    for threadid, position, term, pos in terms:
-      if count % 100000 == 0: print "processing terms", count
+    for line in infile:
+      fields = line.strip().split(termseparator)
+      if len(fields) != len(termheader):
+        print "error line", line
+        continue
+      threadid, position, term, pos = fields
+      if count % 100000 == 0: print "processing terms", count, "in file", f
       if term not in term_usage_dict:
         usage = TermUsage()
         usage.term = term
