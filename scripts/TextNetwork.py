@@ -81,6 +81,7 @@ def aggregate_terms_usage(files, output):
       self.pos = set([])
       self.totaloccur = 0
       self.threadoccur = 0
+      self.curr_thread = ''
     def __cmp__(self, other):
       a = cmp(self.threadoccur, other.threadoccur)
       if a != 0: return a
@@ -94,16 +95,13 @@ def aggregate_terms_usage(files, output):
       return '\t'.join([self.term, pos, str(self.threadoccur), str(self.totaloccur)])
       
   term_usage_dict = {}
-  curr_threadid = ''
-  counted_terms = set([])
   for f in files:
+    print "reading file", f
     terms = read_term_file(f)
+    print "finish reading file", f
+    count = 0
     for threadid, position, term, pos in terms:
-      # if new thread, then do some stuff
-      if threadid != curr_threadid:
-        curr_threadid = threadid
-        counted_terms = set([])
-        
+      if count % 100000 == 0: print "processing terms", count
       if term not in term_usage_dict:
         usage = TermUsage()
         usage.term = term
@@ -113,10 +111,9 @@ def aggregate_terms_usage(files, output):
       usage.pos.add(pos)
       usage.totaloccur += 1
       # count thread occur
-      if term not in counted_terms:
+      if threadid != usage.curr_thread:
         usage.threadoccur += 1
-        counted_terms.add(term)
-      term_usage_dict[term] = usage
+        usage.curr_thread = threadid
 
   # clean terms, based on the output from aggregate_terms_usage()
   def filter_terms(term):
@@ -127,6 +124,7 @@ def aggregate_terms_usage(files, output):
   outfile = open(output, 'w')
   print >>outfile, '\t'.join(header)
   terms = term_usage_dict.values()
+  print "sorting terms"
   terms.sort(reverse=True)
   for term in terms:
     if filter_terms(term): continue
@@ -267,7 +265,7 @@ class TextNetwork:
     output = open(output, 'w')
     print >>output, "*Vertices    ", len(nodes)
     for n in nodes:
-      print >>output, count, '"'+n.term+'"'
+      print >>output, count, '"'+n.id+'"'
       count += 1
     print >>output, "*Arcs"
     print >>output, "*Edges"
@@ -437,9 +435,9 @@ class PeopleFullNetwork(TianyaFullNetwork): pass
 
 
 if __name__ == '__main__':
-  network = PeopleFullNetwork()
-  network.edgefile = ('/home/mrzhou/data/data4tech/peopleedges.txt')
-  network.run('/home/mrzhou/data/data4tech/peopletest.txt', '/home/mrzhou/data/data4tech/peoplefull.net')
+  #network = TianyaFullNetwork()
+  #network.edgefile = ('/home/mrzhou/data/data4tech/tianyaedges.txt')
+  #network.run('/home/mrzhou/data/data4tech/tianyaterms.txt', '/home/mrzhou/data/data4tech/tianyafull.net')
   #generate_userdict()
   #network = TianyaTextNetwork()
   ##network.run('../tiger-tianya-terms.txt', '../tiger.net')
@@ -448,7 +446,7 @@ if __name__ == '__main__':
   
 
   # v2 is the simplified terms
-  #aggregate_terms_usage(['../data/tigerpeopleterms.txt', '../data/milkpeopleterms.txt'], '../data/peopletermsusage.txt')
+  aggregate_terms_usage(['/home/mrzhou/data/data4tech/tianyaterms.txt', '/home/mrzhou/data/data4tech/peopleterms.txt'], '/home/mrzhou/data/data4tech/termsusage.txt')
   #read_term_file_to_print('../data/termsusage_v3_together.txt')
 
   
