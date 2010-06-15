@@ -109,6 +109,7 @@ def aggregate_terms_usage(files, output):
         continue
       threadid, position, term, pos = fields
       if count % 100000 == 0: print "processing terms", count, "in file", f
+      count += 1
       if term not in term_usage_dict:
         usage = TermUsage()
         usage.term = term
@@ -121,6 +122,7 @@ def aggregate_terms_usage(files, output):
       if threadid != usage.curr_thread:
         usage.threadoccur += 1
         usage.curr_thread = threadid
+    infile.close()
 
   # clean terms, based on the output from aggregate_terms_usage()
   def filter_terms(term):
