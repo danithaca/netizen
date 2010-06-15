@@ -94,30 +94,34 @@ def aggregate_terms_usage(files, output):
       pos = '/'.join(self.pos)
       return '\t'.join([self.term, pos, str(self.threadoccur), str(self.totaloccur)])
       
-  term_usage_dict = {}
+  term_usage_dict = defaultdict(TermUsage)
   termheader = ['threadid', 'position', 'term', 'pos']
-  termseparator = '\t'
   for f in files:
     infile = open(f, 'r')
     line = infile.readline().strip()
-    assert termheader == line.split(termseparator)
+    assert termheader == line.split('\t')
     count = 0
     for line in infile:
-      fields = line.strip().split(termseparator)
+      fields = line.strip().split('\t')
       if len(fields) != len(termheader):
         print "error line", line
         continue
+      
       threadid, position, term, pos = fields
-      if count % 100000 == 0: print "processing terms", count, "in file", f
+      if count % 100000 == 0:
+        print "processing terms", count, "in file", f
       count += 1
-      if term not in term_usage_dict:
-        usage = TermUsage()
+      
+      usage = term_usage_dict[term]
+      if not hasattr(usage, 'term'):
         usage.term = term
       else:
-        usage = term_usage_dict[term]
         assert term == usage.term
+        
       usage.pos.add(pos)
       usage.totaloccur += 1
+      term_usage_dict[term] = usage
+      
       # count thread occur
       if threadid != usage.curr_thread:
         usage.threadoccur += 1
@@ -125,19 +129,19 @@ def aggregate_terms_usage(files, output):
     infile.close()
 
   # clean terms, based on the output from aggregate_terms_usage()
-  def filter_terms(term):
+  def filter_terms(usage):
     ######################## filter criteria ###################
-    return term.threadoccur<=3 or term.totaloccur<=10
+    return usage.threadoccur<=3 or usage.totaloccur<=10
 
   header=['term', 'pos', 'threadoccur', 'totoaloccur']
   outfile = open(output, 'w')
   print >>outfile, '\t'.join(header)
-  terms = term_usage_dict.values()
+  usages= term_usage_dict.values()
   print "sorting terms"
-  terms.sort(reverse=True)
-  for term in terms:
-    if filter_terms(term): continue
-    print >>outfile, term
+  usages.sort(reverse=True)
+  for u in usages:
+    if filter_terms(u): continue
+    print >>outfile, u
   outfile.close()
 
 
