@@ -154,12 +154,25 @@ def read_term_file_to_print(file):
   assert header == line.split(separator)
   for line in infile:
     fields = line.strip().split(separator)
-    print fields[0]
+    #print fields[0]
     terms.append(fields[0])
   infile.close()
   return terms
 
 
+# output the terms not in base
+def diff_term_file(input, base, output):
+  baseterms = read_term_file_to_print(base)
+  infile = open(input, 'r')
+  outfile = open(output, 'w')
+  # write the header
+  outfile.write(infile.readline())
+  for line in infile:
+    term = line.split('\t')[0]
+    if term not in baseterms:
+      outfile.write(line)
+  infile.close()
+  outfile.close()
 
 
 # default definition for a simple node
@@ -459,7 +472,7 @@ if __name__ == '__main__':
   
 
   # v2 is the simplified terms
-  aggregate_terms_usage(['/home/mrzhou/data/data4tech/tianyaterms.txt', '/home/mrzhou/data/data4tech/peopleterms.txt'], '/home/mrzhou/data/data4tech/termsusage.txt')
+  #aggregate_terms_usage(['/home/mrzhou/data/data4tech/tianyaterms.txt', '/home/mrzhou/data/data4tech/peopleterms.txt'], '/home/mrzhou/data/data4tech/termsusage.txt')
   #read_term_file_to_print('../data/termsusage_v3_together.txt')
 
-  
+  diff_term_file('../data4tech/termsusage.txt', '../data4tech/termsusage_base.txt', '../data4tech/termdiff.txt')
