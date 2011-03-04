@@ -9,7 +9,7 @@ import TextNetwork
 class ChinaStudy(object):
   input_file_encoding = 'GBK'
   output_file_encoding = 'GBK'
-  
+
   def config(self):
     assert False, "Please override"
     # self.src_txt_dir
@@ -18,9 +18,10 @@ class ChinaStudy(object):
     #self.term_pos_file =
     self.config()
     self.analyzer = SmartParser50()
-    
+
   def output_term_pos(self):
     file_list = os.listdir(self.src_txt_dir)
+    file_list = [self.src_txt_dir+'/'+f for f in file_list]
     n, term_file = tempfile.mkstemp(suffix='.t')
     print "Output terms to:", term_file
     self.term_file = term_file
@@ -32,6 +33,7 @@ class ChinaStudy(object):
     out = OutputStreamWriter(FileOutputStream(term_file), self.output_file_encoding)
     out.write('\t'.join(header)+'\n')
     for f in file_list:
+      print "Processing file:", f
       try:
         threadid = re.search(r'(\d+)[.]txt').group(1)
       except:
@@ -41,7 +43,7 @@ class ChinaStudy(object):
       content = CharBuffer()
       fi.read(content)
       terms = self.analyzer.splitTerms(content)
-      
+
       position = 0
       for term in terms:
         t = term.getTerm()
@@ -50,7 +52,7 @@ class ChinaStudy(object):
         row = [threadid, position, t, p]
         out.write('\t'.join(row)+'\n')
         position += 1
-      
+
 
   def output_netfile_from_term(self):
     n, net_file = tempfile.mkstemp(suffix='.net')
@@ -60,7 +62,14 @@ class ChinaStudy(object):
 
   def generate_term_knn(self):
     pass
-  
-  
+
+
 class PeopleMilk(ChinaStudy):
-  pass
+  def config(self):
+    self.input_file_encoding = 'UTF-8'
+    self.src_txt_dir = r'/home/mrzhou/ChinaMedia/people-3-milk-clean'
+
+
+if __name__ == '__main__':
+  pm = PeopleMilk()
+  pm.output_term_pos()
