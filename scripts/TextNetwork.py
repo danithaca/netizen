@@ -320,7 +320,7 @@ class TextNetwork:
     self.edges = {}
     
     count = 0
-    COUNTALERT=10000
+    COUNTALERT=100000
     for line in terms_file:
       if count%COUNTALERT == 0: print "processing line", count
       count += 1
