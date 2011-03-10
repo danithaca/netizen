@@ -78,7 +78,6 @@ class UndirectedEdge(Edge):
     Edge.__init__(self, node1, node2)
 
 
-
 def no_skip_node(node): return False
 def no_skip_edge(edge): return False
 
@@ -116,6 +115,7 @@ class ChinaStudy(object):
     #self.analyzer = SmartParser()
     self.analyzer.loadUserDict()
 
+
   def output_term_pos(self):
     file_list = os.listdir(self.src_txt_dir)
     file_list = [self.src_txt_dir+'/'+f for f in file_list]
@@ -147,7 +147,8 @@ class ChinaStudy(object):
       for term in terms:
         t = term.getTerm()
         if t=='*': continue
-        p = term.getPosId()
+        #p = term.getPosId()
+        p = term.getPos()
         row = [threadid, str(position), t, str(p)]
         out.write('\t'.join(row)+'\n')
         position += 1
@@ -157,29 +158,30 @@ class ChinaStudy(object):
   def process_term_file(self):
     term_file = self.term_file
     print "processing terms from term file:", term_file
-    term_file = codecs.open(term_file, 'r', self.output_file_encoding)
+    term_file = open(term_file, 'r')
     assert term_file.readline().strip().split() == term_file_header
 
     current_threadid = None
     window = []
     # using edgefile as temporary storage for the edges.
     n, self.edgefile = tempfile.mkstemp(prefix='', suffix='.ed')
+    print "saving temp edge link to:", self.edgefile
     edgeout = open(self.edgefile, 'w')
 
     count = 0
-    COUNTALERT=10000
+    COUNTALERT=100000
     for line in term_file:
-      if count%COUNTALERT == 0: print "processing line", count
+      if count%COUNTALERT == 0: print "processing term line", count
       count += 1
 
       try:
         node = (self.nodeclass)(None)
         node.construct_from_line(line.strip())
       except:
-        #traceback.print_exc()
+        traceback.print_exc()
         print "error line:", line
         continue
-      if self.skip_node(): continue
+      if (self.skip_node)(node): continue
 
       if node.threadid != current_threadid:
         # start processing the new thread
@@ -215,7 +217,7 @@ class ChinaStudy(object):
       n1, n2, w = k.split(',')
       edge = (self.edgeclass)((self.nodeclass)(n1), (self.nodeclass)(n2))
       edge.weight = v
-      if self.skip_edge(edge) or edge.selfloop(): continue
+      if (self.skip_edge)(edge) or edge.selfloop(): continue
       edges[edge.id] = edge
     return edges
 
@@ -227,7 +229,7 @@ class ChinaStudy(object):
     nodesindex = {}
     edges = []
     for key, edge in inedges.items():
-      if self.skip_edge(edge): continue
+      if (self.skip_edge)(edge): continue
       if edge.node1.id not in nodesindex:
         nodes.append(edge.node1)
         n1 = len(nodes)
@@ -286,9 +288,11 @@ class ChinaStudy(object):
     return knnlist
 
   def run(self):
-    self.output_term_pos()
-    edges = self.process_term_file()
-    self.output_pajek(edges)
+    #self.output_term_pos()
+    #self.term_file = '/tmp/hJVomG.t'
+    #edges = self.process_term_file()
+    #self.output_pajek(edges)
+    self.net_file = '/tmp/a.net'
     os.system('python analysis.py info '+self.net_file)
 
 
@@ -298,7 +302,7 @@ class PeopleMilk(ChinaStudy):
     self.src_txt_dir = r'/home/mrzhou/ChinaMedia/people-3-milk-clean'
     self.edgeclass = UndirectedEdge
     self.skip_node = skip_nonuserdict_node
-    self.skp_edge = skip_single_edge
+    self.skip_edge = skip_single_edge
 
 
 if __name__ == '__main__':
