@@ -256,13 +256,40 @@ class ChinaStudy(object):
 
 
   def generate_term_knn(self):
-    pass
+    g = graph_info(self.net_file)
+    # find the node id or "vertex" object for the term
+    v = g.vs.select(id_eq = term)
+    if len(v) != 1:
+      print "can't find term", term
+    v = v[0]
+    # find the adjacent verteces (neighbor)
+    neighbors = g.neighbors(v.index)
+    print "a total of", len(neighbors), "neighbors"
+    # find the adjacent edges with weights
+    adjedges = g.adjacent(v.index)
+    assert len(neighbors) == len(adjedges)
+    l = []
+    knnlist = []
+    for e in adjedges:
+      if g.is_loop(e):
+        print "contains self loop", e
+        continue
+      e = g.es[e]
+      o = e.target if e.target!=v.index else e.source
+      l.append((o, e['weight']))
+    l.sort(cmp=lambda x,y: cmp(x[1],y[1]), reverse=True)
+    for t in l:
+      limit -= 1
+      if limit == 0: break
+      knnlist.append((g.vs[t[0]]['id'], t[1]))
+      print "%s\t%d" % (g.vs[t[0]]['id'], t[1])
+    return knnlist
 
   def run(self):
     self.output_term_pos()
     edges = self.process_term_file()
     self.output_pajek(edges)
-
+    os.system('python analysis.py info '+self.net_file)
 
 
 class PeopleMilk(ChinaStudy):

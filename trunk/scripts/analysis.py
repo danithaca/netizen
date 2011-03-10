@@ -1,6 +1,6 @@
 # coding: utf8
 
-import igraph, os
+import igraph, os, sys
 
 def output_centrality_csv(netfile, output):
   g = igraph.read(netfile)
@@ -60,7 +60,7 @@ def term_knn_diff(f1, f2, term, knn_cutoff=100):
   knn2 = output_term_knn(f2, term)
   knn2 = [t[0] for t in knn2]
   knn2_len = len(knn2)
-  
+
   diff = []
   visited = []
   for i in range(min(knn1_len, knn_cutoff)):
@@ -79,13 +79,12 @@ def term_knn_diff(f1, f2, term, knn_cutoff=100):
     else:
       i = knn1_len
     diff.append((term, i, j, abs(i-j)))
-  
+
   # sorting
   diff.sort(cmp=lambda x,y: cmp(x[3], y[3]), reverse=True)
   print "printing difference!"
   for d in diff:
     print '\t'.join(map(str, d))
-    
 
 
 def graph_info(netfile):
@@ -94,7 +93,7 @@ def graph_info(netfile):
   #print "edges attributes:", g.vertex_attributes()
   if g.is_directed(): print "directed graph"
   else: print "indirected graph"
-  
+
 #  for v in g.vs:
 #    print v
 #  for e in g.es:
@@ -103,11 +102,18 @@ def graph_info(netfile):
 #  print v[0]['shape']
   return g
 
+
 if __name__ == '__main__':
-  os.chdir('../data4tech')
-  print os.getcwd()
+  #os.chdir('../data4tech')
+  #print os.getcwd()
   #output_centrality_csv('data/tigerpeople.net', 'data/tiger-people.csv')
   #graph_info('test.net')
   #output_term_knn('peoplefull.net', ur'法律')
-  term_knn_diff('tianyafull.net', 'peoplefull.net', ur'法律')
+  #term_knn_diff('tianyafull.net', 'peoplefull.net', ur'法律')
+  if len(sys.argv) <= 1:
+    pass
+  elif sys.argv[1] == 'info':
+    graph_info(sys.argv[2])
+  else:
+    assert False
 
