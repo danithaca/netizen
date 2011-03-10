@@ -1,9 +1,9 @@
 # this is the new script for study after 2011-2
 
-import re, os, tempfile, codecs
+import re, os, tempfile, codecs, traceback
 from java.io import *
 from java.nio import *
-from magicstudio.netizen.util import SmartParser50
+from magicstudio.netizen.util import SmartParser50, SmartParser
 from mypytools import read_csv
 
 
@@ -91,11 +91,14 @@ class ChinaStudy(object):
     #self.term_pos_file =
     self.config()
     self.analyzer = SmartParser50()
+    # use the old parser
+    #self.analyzer = SmartParser()
+    self.analyzer.loadUserDict()
 
   def output_term_pos(self):
     file_list = os.listdir(self.src_txt_dir)
     file_list = [self.src_txt_dir+'/'+f for f in file_list]
-    n, term_file = tempfile.mkstemp(suffix='.t')
+    n, term_file = tempfile.mkstemp(prefix='', suffix='.t')
     print "Output terms to:", term_file
     self.term_file = term_file
     self._output_term_pos(file_list, term_file)
@@ -105,26 +108,29 @@ class ChinaStudy(object):
     header = self.term_file_header
     out = OutputStreamWriter(FileOutputStream(term_file), self.output_file_encoding)
     out.write('\t'.join(header)+'\n')
+    buf = CharBuffer.allocate(50000000) # 50M
     for f in file_list:
-      print "Processing file:", f
+      #print "Processing file:", f
       try:
-        threadid = re.search(r'(\d+)[.]txt').group(1)
+        threadid = re.search(r'(\d+)[.]txt', f).group(1)
       except:
+        traceback.print_exc()
         print "Skip file:", f
         continue
       fi = InputStreamReader(FileInputStream(f), self.input_file_encoding)
-      content = CharBuffer()
-      fi.read(content)
-      terms = self.analyzer.splitTerms(content)
+      buf.clear()
+      fi.read(buf)
+      terms = self.analyzer.splitTerms(buf.toString())
 
       position = 0
       for term in terms:
         t = term.getTerm()
         if t=='*': continue
         p = term.getPosId()
-        row = [threadid, position, t, p]
+        row = [threadid, str(position), t, str(p)]
         out.write('\t'.join(row)+'\n')
         position += 1
+    out.close()
 
 
   def process_term_file(self, term_file):
@@ -192,13 +198,17 @@ class ChinaStudy(object):
 
 
   def output_netfile_from_term(self):
-    n, net_file = tempfile.mkstemp(suffix='.net')
+    n, net_file = tempfile.mkstemp(prefix='', suffix='.net')
     self.net_file = net_file
     print "Pajek file:", net_file
-    network = TextNetwork.TextNetwork(self.term_file, self.net_file)
+    network = TextNetwork.TextNetwork().run(self.term_file, self.net_file)
 
   def generate_term_knn(self):
     pass
+    
+  def run(self):
+    self.output_term_pos()
+    self.output_netfile_from_term()
 
 
 
@@ -211,4 +221,4 @@ class PeopleMilk(ChinaStudy):
 
 if __name__ == '__main__':
   pm = PeopleMilk()
-  pm.output_term_pos()
+  pm.run()
