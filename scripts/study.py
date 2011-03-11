@@ -1,6 +1,7 @@
 # this is the new script for study after 2011-2
+# this file is encoded in UTF8.
 
-import re, os, tempfile, codecs, traceback, collections
+import re, os, tempfile, codecs, traceback, collections, igraph
 from mypytools import read_csv
 
 
@@ -224,8 +225,36 @@ class ChinaStudy(object):
     output.close()
 
 
-  def generate_term_knn(self):
-    pass
+  def generate_term_knn(self, term, limit=0):
+    g = igraph.read(self.net_file)
+    # find the node id or "vertex" object for the term
+    v = g.vs.select(id_eq = term)
+    if len(v) != 1:
+      print "can't find term", term
+    v = v[0]
+    # find the adjacent verteces (neighbor)
+    neighbors = g.neighbors(v.index)
+    print "a total of", len(neighbors), "neighbors"
+    # find the adjacent edges with weights
+    adjedges = g.adjacent(v.index)
+    assert len(neighbors) == len(adjedges)
+    l = []
+    knnlist = []
+    for e in adjedges:
+      if g.is_loop(e):
+        print "contains self loop", e
+        continue
+      e = g.es[e]
+      o = e.target if e.target!=v.index else e.source
+      l.append((o, e['weight']))
+    l.sort(cmp=lambda x,y: cmp(x[1],y[1]), reverse=True)
+    for t in l:
+      limit -= 1
+      if limit == 0: break
+      knnlist.append((g.vs[t[0]]['id'], t[1]))
+      print "%s\t%d" % (g.vs[t[0]]['id'], t[1])
+    return knnlist
+
 
   def run(self):
     #self.output_term_pos()
