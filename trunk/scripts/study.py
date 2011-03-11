@@ -1,3 +1,4 @@
+# coding: utf8
 # this is the new script for study after 2011-2
 # this file is encoded in UTF8.
 
@@ -120,8 +121,10 @@ class ChinaStudy(object):
     n, term_file = tempfile.mkstemp(prefix='', suffix='.t')
     print "Output terms to:", term_file
     self.term_file = term_file
-    os.system('jython studyj.py "output_term_pos(%s, %s, %s, %s)"' % (list_file, term_file, self.input_file_encoding, self.output_file_encoding))
-
+    cmd = "jython studyj.py \"output_term_pos('%s','%s','%s','%s')\"" % (list_file, term_file, self.input_file_encoding, self.output_file_encoding)
+    #print cmd
+    os.system(cmd)
+    #print "finish"
 
   def process_term_file(self):
     term_file = self.term_file
@@ -252,16 +255,17 @@ class ChinaStudy(object):
       limit -= 1
       if limit == 0: break
       knnlist.append((g.vs[t[0]]['id'], t[1]))
-      print "%s\t%d" % (g.vs[t[0]]['id'], t[1])
+      #print "%s\t%d" % (g.vs[t[0]]['id'], t[1])
     return knnlist
 
 
   def run(self):
     #self.output_term_pos()
-    #self.term_file = '/tmp/hJVomG.t'
     #edges = self.process_term_file()
     #self.output_pajek(edges)
-    self.net_file = '/tmp/a.net'
+    self.net_file = '/tmp/KX80md.net'
+    knnlist = self.generate_term_knn('法律')
+
 
 
 class PeopleMilk(ChinaStudy):
