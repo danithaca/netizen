@@ -1,9 +1,6 @@
 # this is the new script for study after 2011-2
 
 import re, os, tempfile, codecs, traceback, collections
-from java.io import *
-from java.nio import *
-from magicstudio.netizen.util import SmartParser50, SmartParser
 from mypytools import read_csv
 
 
@@ -110,49 +107,19 @@ class ChinaStudy(object):
   def __init__(self):
     #self.term_pos_file =
     self.config()
-    self.analyzer = SmartParser50()
-    # use the old parser
-    #self.analyzer = SmartParser()
-    self.analyzer.loadUserDict()
 
 
   def output_term_pos(self):
     file_list = os.listdir(self.src_txt_dir)
-    file_list = [self.src_txt_dir+'/'+f for f in file_list]
+    n, list_file = tempfile.mkstemp(prefix='', suffix='.fl')
+    fl = open(list_file, 'w')
+    for f in file_list:
+      print >>fl, self.src_txt_dir+'/'+f
+    fl.close()
     n, term_file = tempfile.mkstemp(prefix='', suffix='.t')
     print "Output terms to:", term_file
     self.term_file = term_file
-    self._output_term_pos(file_list, term_file)
-
-  # written for Jython. since jython2.5.2rc4 doesn't support gbk codec, we use Java files.
-  def _output_term_pos(self, file_list, term_file):
-    header = term_file_header
-    out = OutputStreamWriter(FileOutputStream(term_file), self.output_file_encoding)
-    out.write('\t'.join(header)+'\n')
-    buf = CharBuffer.allocate(50000000) # 50M
-    for f in file_list:
-      #print "Processing file:", f
-      try:
-        threadid = re.search(r'(\d+)[.]txt', f).group(1)
-      except:
-        traceback.print_exc()
-        print "Skip file:", f
-        continue
-      fi = InputStreamReader(FileInputStream(f), self.input_file_encoding)
-      buf.clear()
-      fi.read(buf)
-      terms = self.analyzer.splitTerms(buf.toString())
-
-      position = 0
-      for term in terms:
-        t = term.getTerm()
-        if t=='*': continue
-        #p = term.getPosId()
-        p = term.getPos()
-        row = [threadid, str(position), t, str(p)]
-        out.write('\t'.join(row)+'\n')
-        position += 1
-    out.close()
+    os.system('jython studyj.py "output_term_pos(%s, %s, %s, %s)"' % (list_file, term_file, self.input_file_encoding, self.output_file_encoding))
 
 
   def process_term_file(self):
@@ -258,34 +225,7 @@ class ChinaStudy(object):
 
 
   def generate_term_knn(self):
-    g = graph_info(self.net_file)
-    # find the node id or "vertex" object for the term
-    v = g.vs.select(id_eq = term)
-    if len(v) != 1:
-      print "can't find term", term
-    v = v[0]
-    # find the adjacent verteces (neighbor)
-    neighbors = g.neighbors(v.index)
-    print "a total of", len(neighbors), "neighbors"
-    # find the adjacent edges with weights
-    adjedges = g.adjacent(v.index)
-    assert len(neighbors) == len(adjedges)
-    l = []
-    knnlist = []
-    for e in adjedges:
-      if g.is_loop(e):
-        print "contains self loop", e
-        continue
-      e = g.es[e]
-      o = e.target if e.target!=v.index else e.source
-      l.append((o, e['weight']))
-    l.sort(cmp=lambda x,y: cmp(x[1],y[1]), reverse=True)
-    for t in l:
-      limit -= 1
-      if limit == 0: break
-      knnlist.append((g.vs[t[0]]['id'], t[1]))
-      print "%s\t%d" % (g.vs[t[0]]['id'], t[1])
-    return knnlist
+    pass
 
   def run(self):
     #self.output_term_pos()
@@ -293,7 +233,6 @@ class ChinaStudy(object):
     #edges = self.process_term_file()
     #self.output_pajek(edges)
     self.net_file = '/tmp/a.net'
-    os.system('python analysis.py info '+self.net_file)
 
 
 class PeopleMilk(ChinaStudy):
