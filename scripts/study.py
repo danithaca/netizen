@@ -32,6 +32,19 @@ def generate_synonyms():
   return terms
 
 
+def compute_kendall(knnx, knny):
+  assert len(knnx) == len(knny)
+  totalsize = len(knnx)
+  dx, dy = {}, {}
+  x, y = [], []
+  for i,w in enumerate(knnx): dx[w] = i
+  for i,w in enumerate(knny): dy[w] = i
+  for w in set(dx.keys() + dy.keys()):
+    x.append(dx.get(w, totalsize+1))
+    y.append(dy.get(w, totalsize+1))
+  ktau = kendalltau(x, y)
+  return ktau
+
 class Node:
   # initialize synonyms for the class
   synonyms = generate_synonyms()
@@ -101,6 +114,7 @@ class ChinaStudy(object):
   skip_node = no_skip_node
   skip_edge = no_skip_edge
   window_size = 50
+  the_term = '法律'
 
   def config(self):
     assert False, "Please override"
@@ -264,8 +278,8 @@ class ChinaStudy(object):
     #edges = self.process_term_file()
     #self.output_pajek(edges)
     self.net_file = '/tmp/KX80md.net'
-    knnlist = self.generate_term_knn('法律')
-
+    knnlist = self.generate_term_knn(self.the_term)
+    print compute_kendall(knnlist, knnlist)
 
 
 class PeopleMilk(ChinaStudy):
