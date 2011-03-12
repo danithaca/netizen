@@ -2,7 +2,7 @@
 # this is the new script for study after 2011-2
 # this file is encoded in UTF8.
 
-import re, os, tempfile, codecs, traceback, collections, igraph
+import re, os, tempfile, codecs, traceback, collections, igraph, random
 from mypytools import read_csv
 from scipy.stats.stats import kendalltau
 
@@ -116,6 +116,8 @@ class ChinaStudy(object):
   skip_edge = no_skip_edge
   window_size = 50
   the_term = '法律'
+  shuffle_percentage = 0.5
+  shuffle_repeat = 100
 
   def config(self):
     assert False, "Please override"
@@ -125,9 +127,27 @@ class ChinaStudy(object):
     #self.term_pos_file =
     self.config()
 
+  def reliable_test(self):
+    knn_list = []
+    for i in range(self.shuffle_repeat):
+      print "Computing round:", i
+      self.output_term_pos()
+      edges = self.process_term_file()
+      self.output_pajek(edges)
+      knn = self.generate_term_knn(self.the_term)
+      for other in knn_list:
+        tau = compute_kendall(other, knn)
+        os.system("echo %s >> /tmp/tau.txt")
+      knn_list.append(knn)
+
+  def manipulate_file_list(self, file_list):
+    fl = list(file_list)
+    random.shuffle(fl)
+    return fl[:int(len(fl)*self.shuffle_percentage)]
 
   def output_term_pos(self):
     file_list = os.listdir(self.src_txt_dir)
+    file_list = self.manipulate_file_list(file_list)
     n, list_file = tempfile.mkstemp(prefix='', suffix='.fl')
     fl = open(list_file, 'w')
     for f in file_list:
@@ -274,15 +294,16 @@ class ChinaStudy(object):
     return knnlist
 
 
+
+
   def run(self):
+    self.shuffle_percentage = 1.0 # we take all files.
     #self.output_term_pos()
     #edges = self.process_term_file()
     #self.output_pajek(edges)
     self.net_file = '/tmp/KX80md.net'
     knnlist = self.generate_term_knn(self.the_term)
-    r = list(knnlist)
-    r.reverse()
-    print compute_kendall(knnlist, r)
+    #print compute_kendall(knnlist, r)
 
 
 class PeopleMilk(ChinaStudy):
@@ -296,4 +317,5 @@ class PeopleMilk(ChinaStudy):
 
 if __name__ == '__main__':
   pm = PeopleMilk()
-  pm.run()
+  #pm.run()
+  pm.reliable_test()
