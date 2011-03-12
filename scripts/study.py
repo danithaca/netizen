@@ -255,7 +255,7 @@ class ChinaStudy(object):
       limit -= 1
       if limit == 0: break
       knnlist.append((g.vs[t[0]]['id'], t[1]))
-      #print "%s\t%d" % (g.vs[t[0]]['id'], t[1])
+      print "%s\t%d" % (g.vs[t[0]]['id'], t[1])
     return knnlist
 
 
