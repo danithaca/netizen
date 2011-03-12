@@ -4,6 +4,7 @@
 
 import re, os, tempfile, codecs, traceback, collections, igraph
 from mypytools import read_csv
+from scipy.stats.stats import kendalltau
 
 
 term_file_header = ['threadid', 'position', 'term', 'pos']
@@ -43,7 +44,7 @@ def compute_kendall(knnx, knny):
     x.append(dx.get(w, totalsize+1))
     y.append(dy.get(w, totalsize+1))
   ktau = kendalltau(x, y)
-  return ktau
+  return ktau[0]
 
 class Node:
   # initialize synonyms for the class
@@ -269,7 +270,7 @@ class ChinaStudy(object):
       limit -= 1
       if limit == 0: break
       knnlist.append((g.vs[t[0]]['id'], t[1]))
-      print "%s\t%d" % (g.vs[t[0]]['id'], t[1])
+      #print "%s\t%d" % (g.vs[t[0]]['id'], t[1])
     return knnlist
 
 
@@ -279,7 +280,9 @@ class ChinaStudy(object):
     #self.output_pajek(edges)
     self.net_file = '/tmp/KX80md.net'
     knnlist = self.generate_term_knn(self.the_term)
-    print compute_kendall(knnlist, knnlist)
+    r = list(knnlist)
+    r.reverse()
+    print compute_kendall(knnlist, r)
 
 
 class PeopleMilk(ChinaStudy):
