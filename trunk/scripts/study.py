@@ -2,7 +2,7 @@
 # this is the new script for study after 2011-2
 # this file is encoded in UTF8.
 
-import re, os, tempfile, codecs, traceback, collections, igraph, random
+import re, os, tempfile, codecs, traceback, collections, igraph, random, numpy
 from mypytools import read_csv
 from scipy.stats.stats import kendalltau
 
@@ -34,8 +34,10 @@ def generate_synonyms():
 
 
 def compute_kendall(knnx, knny):
-  assert len(knnx) == len(knny)
-  totalsize = len(knnx)
+  #assert len(knnx) == len(knny)
+  totalsize = min(len(knnx), len(knny))
+  knnx = knnx[:totalsize]
+  knny = knny[:totalsize]
   dx, dy = {}, {}
   x, y = [], []
   for i,w in enumerate(knnx): dx[w] = i
@@ -118,6 +120,7 @@ class ChinaStudy(object):
   the_term = '法律'
   shuffle_percentage = 0.5
   shuffle_repeat = 100
+  knn_toplist = 100
 
   def config(self):
     assert False, "Please override"
@@ -128,17 +131,21 @@ class ChinaStudy(object):
     self.config()
 
   def reliable_test(self):
-    knn_list = []
+    knn_list, results = [], []
+    n, self.tau_file = tempfile.mkstemp(prefix='', suffix='.tau')
+    out = open(self.tau_file, 'w')
     for i in range(self.shuffle_repeat):
       print "Computing round:", i
       self.output_term_pos()
       edges = self.process_term_file()
       self.output_pajek(edges)
-      knn = self.generate_term_knn(self.the_term)
+      knn = self.generate_term_knn(self.the_term, self.knn_toplist)
       for other in knn_list:
         tau = compute_kendall(other, knn)
-        os.system("echo %s >> /tmp/tau.txt")
+        print >>out, tau
+        results.append(tau)
       knn_list.append(knn)
+    print "N, Mean, Std:", len(results), numpy.average(results), numpy.std(results)
 
   def manipulate_file_list(self, file_list):
     fl = list(file_list)
