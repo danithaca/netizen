@@ -118,7 +118,7 @@ class ChinaStudy(object):
   skip_edge = no_skip_edge
   window_size = 50
   the_term = '法律'
-  shuffle_percentage = 0.5
+  shuffle_percentage = 1.0
   shuffle_repeat = 100
   knn_toplist = 100
 
