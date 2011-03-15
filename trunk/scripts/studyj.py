@@ -48,14 +48,15 @@ def test_output_term():
   print "Total files:", len(file_list)
   def prep_fl(fn, rows):
     fl = open(fn, 'w')
-    out = csv.writer()
-    out.writerows(rows)
+    for f in rows:
+      print >>fl, f
     fl.close()
   print "Generating first file"
-  prep_fl('tmp/1.fl', file_list)
+  prep_fl('/tmp/1.fl', file_list)
   output_term_pos('/tmp/1.fl', '/tmp/1.t', 'utf8', 'utf8')
   print "Generating second file"
-  prep_fl('tmp/2.fl', file_list)
+  file_list.reverse()
+  prep_fl('/tmp/2.fl', file_list)
   output_term_pos('/tmp/2.fl', '/tmp/2.t', 'utf8', 'utf8')
 
 
