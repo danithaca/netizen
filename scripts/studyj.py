@@ -7,10 +7,10 @@ term_file_header = ['threadid', 'position', 'term', 'pos']
 
 # written for Jython. since jython2.5.2rc4 doesn't support gbk codec, we use Java files.
 def output_term_pos(list_file, term_file, input_file_encoding, output_file_encoding):
-  analyzer = SmartParser50()
+  #analyzer = SmartParser50()
   # use the old parser
   #self.analyzer = SmartParser()
-  analyzer.loadUserDict()
+  #analyzer.loadUserDict()
   fl = open(list_file, 'r')
 
   header = term_file_header
@@ -29,7 +29,9 @@ def output_term_pos(list_file, term_file, input_file_encoding, output_file_encod
     fi = InputStreamReader(FileInputStream(f), input_file_encoding)
     buf.clear()
     fi.read(buf)
+    analyzer = SmartParser50()
     terms = analyzer.splitTerms(buf.toString())
+    analyzer.exit()
 
     position = 0
     for term in terms:
@@ -40,7 +42,7 @@ def output_term_pos(list_file, term_file, input_file_encoding, output_file_encod
       out.write('\t'.join(row)+'\n')
       position += 1
   out.close()
-  analyzer.exit()
+  #analyzer.exit()
 
 
 def test_output_term():
