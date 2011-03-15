@@ -40,6 +40,7 @@ def output_term_pos(list_file, term_file, input_file_encoding, output_file_encod
       out.write('\t'.join(row)+'\n')
       position += 1
   out.close()
+  analyzer.exit()
 
 
 def test_output_term():
@@ -77,7 +78,7 @@ def process_command(debug = True):
     endtime = time.time()
     diff = endtime - starttime
     print int(diff//3600), 'hours', int((diff%3600)//60), 'minutes', diff%60, 'seconds'
-    #print "Total execution hours:", (endtime-starttime)/3600, 
+    #print "Total execution hours:", (endtime-starttime)/3600,
   else:
     #command = sys.argv[1]
     #args = sys.argv[2:]
