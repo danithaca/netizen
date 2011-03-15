@@ -1,7 +1,7 @@
 from java.io import *
 from java.nio import *
 from magicstudio.netizen.util import SmartParser50, SmartParser
-import sys, re, traceback, time
+import sys, re, traceback, time, os, csv
 
 term_file_header = ['threadid', 'position', 'term', 'pos']
 
@@ -40,6 +40,23 @@ def output_term_pos(list_file, term_file, input_file_encoding, output_file_encod
       out.write('\t'.join(row)+'\n')
       position += 1
   out.close()
+
+
+def test_output_term():
+  src_txt_dir = r'/home/mrzhou/ChinaMedia/people-3-milk-clean'
+  file_list = [src_txt_dir+'/'+f for f in os.listdir(src_txt_dir)]
+  print "Total files:", len(file_list)
+  def prep_fl(fn, rows):
+    fl = open(fn, 'w')
+    out = csv.writer()
+    out.writerows(rows)
+    fl.close()
+  print "Generating first file"
+  prep_fl('tmp/1.fl', file_list)
+  output_term_pos('/tmp/1.fl', '/tmp/1.t', 'utf8', 'utf8')
+  print "Generating second file"
+  prep_fl('tmp/2.fl', file_list)
+  output_term_pos('/tmp/2.fl', '/tmp/2.t', 'utf8', 'utf8')
 
 
 #def main(opt):
