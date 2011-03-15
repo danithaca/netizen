@@ -35,6 +35,10 @@ def generate_synonyms():
 
 def compute_kendall(knnx, knny):
   #assert len(knnx) == len(knny)
+  knnx = [r[0] for r in knnx]
+  knny = [r[0] for r in knny]
+  for x, y in zip(knnx, knny):
+    print x, '\t', y
   totalsize = min(len(knnx), len(knny))
   knnx = knnx[:totalsize]
   knny = knny[:totalsize]
