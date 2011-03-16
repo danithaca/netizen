@@ -108,9 +108,13 @@ def skip_nonuserdict_node(node):
     return True
 
 def skip_single_edge(edge):
-    # only remove the 1-timers
-    if edge.weight<2: return True
-    else: return False
+  # only remove the 1-timers
+  if edge.weight<2: return True
+  else: return False
+
+def skip_w20_edge(edge):
+  if edge.weight<20: return True
+  else: return False
 
 
 class ChinaStudy(object):
@@ -305,8 +309,6 @@ class ChinaStudy(object):
     return knnlist
 
 
-
-
   def run(self):
     self.shuffle_percentage = 1.0 # we take all files.
     #self.output_term_pos()
@@ -317,6 +319,8 @@ class ChinaStudy(object):
     #print compute_kendall(knnlist, r)
 
 
+#######################################################################
+
 class PeopleMilk(ChinaStudy):
   def config(self):
     #self.input_file_encoding = 'UTF-8'
@@ -324,9 +328,36 @@ class PeopleMilk(ChinaStudy):
     self.edgeclass = UndirectedEdge
     self.skip_node = skip_nonuserdict_node
     self.skip_edge = skip_single_edge
+    
+    
+class PeopleTiger(ChinaStudy):
+  def config(self):
+    #self.input_file_encoding = 'UTF-8'
+    self.src_txt_dir = r'/home/mrzhou/ChinaMedia/people-3-tiger-clean'
+    self.edgeclass = UndirectedEdge
+    self.skip_node = skip_nonuserdict_node
+    self.skip_edge = skip_single_edge
+    
+    
+class TianyaMilk(ChinaStudy):
+  def config(self):
+    self.input_file_encoding = 'GBK'
+    self.src_txt_dir = r'/home/mrzhou/ChinaMedia/tiany-news-5-milk-txt'
+    self.edgeclass = UndirectedEdge
+    self.skip_node = skip_nonuserdict_node
+    self.skip_edge = skip_w20_edge
+  
+  
+class TianyaTiger(ChinaStudy):
+  def config(self):
+    self.input_file_encoding = 'GBK'
+    self.src_txt_dir = r'/home/mrzhou/ChinaMedia/tiany-news-5-tiger-txt'
+    self.edgeclass = UndirectedEdge
+    self.skip_node = skip_nonuserdict_node
+    self.skip_edge = skip_w20_edge
 
 
 if __name__ == '__main__':
-  pm = PeopleMilk()
+  pm = PeopleTiger()
   #pm.run()
   pm.reliable_test()
