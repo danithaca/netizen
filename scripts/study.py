@@ -37,8 +37,8 @@ def compute_kendall(knnx, knny):
   #assert len(knnx) == len(knny)
   knnx = [r[0] for r in knnx]
   knny = [r[0] for r in knny]
-  for x, y in zip(knnx, knny):
-    print x, '\t', y
+  #for x, y in zip(knnx, knny):
+  #  print x, '\t', y
   totalsize = min(len(knnx), len(knny))
   knnx = knnx[:totalsize]
   knny = knny[:totalsize]
@@ -122,7 +122,7 @@ class ChinaStudy(object):
   skip_edge = no_skip_edge
   window_size = 50
   the_term = '法律'
-  shuffle_percentage = 1.0
+  shuffle_percentage = 0.5
   shuffle_repeat = 100
   knn_toplist = 100
 
