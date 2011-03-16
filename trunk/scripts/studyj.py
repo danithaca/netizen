@@ -1,5 +1,6 @@
 from java.io import *
 from java.nio import *
+from org.apache.commons.io import FileUtils
 from magicstudio.netizen.util import SmartParser50, SmartParser
 import sys, re, traceback, time, os, csv
 
@@ -26,11 +27,10 @@ def output_term_pos(list_file, term_file, input_file_encoding, output_file_encod
       traceback.print_exc()
       print "Skip file:", f
       continue
-    fi = InputStreamReader(FileInputStream(f), input_file_encoding)
-    buf.clear()
-    fi.read(buf)
+    fc = FileUtils.readFileToString(File(f), input_file_encoding)
     analyzer = SmartParser50()
-    terms = analyzer.splitTerms(buf.toString())
+    terms = analyzer.splitTerms(fc)
+    #print "Terms:", len(terms)
     analyzer.exit()
 
     position = 0
