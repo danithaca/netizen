@@ -59,6 +59,8 @@ class Node:
   def __init__(self, id):
     self.id = id
   def __cmp__(self, other):
+    id1 = self.id.decode('utf8', 'ignore')
+    id2 = other.id.decode('utf8', 'ignore')
     return cmp(self.id, other.id)
 
   # note: will take care of synonyms
@@ -158,11 +160,13 @@ class ChinaStudy(object):
   def manipulate_file_list(self, file_list):
     fl = list(file_list)
     random.shuffle(fl)
-    return fl[:int(len(fl)*self.shuffle_percentage)]
+    ml = fl[:int(len(fl)*self.shuffle_percentage)]
+    return ml
 
   def output_term_pos(self):
     file_list = os.listdir(self.src_txt_dir)
     file_list = self.manipulate_file_list(file_list)
+    print "Input dir:", self.src_txt_dir, "--", len(file_list)
     n, list_file = tempfile.mkstemp(prefix='', suffix='.fl')
     fl = open(list_file, 'w')
     for f in file_list:
@@ -311,12 +315,19 @@ class ChinaStudy(object):
 
   def run(self):
     self.shuffle_percentage = 1.0 # we take all files.
-    #self.output_term_pos()
-    #edges = self.process_term_file()
-    #self.output_pajek(edges)
-    self.net_file = '/tmp/KX80md.net'
+    self.output_term_pos()
+    edges = self.process_term_file()
+    self.output_pajek(edges)
+    #self.net_file = '/tmp/KX80md.net'
     knnlist = self.generate_term_knn(self.the_term)
     #print compute_kendall(knnlist, r)
+    return knnlist
+
+def compare_datasets(class1, class2):
+  knn1 = class1().run()
+  knn2 = class2().run()
+  tau = compute_kendall()
+  
 
 
 #######################################################################
