@@ -59,9 +59,18 @@ class Node:
   def __init__(self, id):
     self.id = id
   def __cmp__(self, other):
-    id1 = self.id.decode('utf8', 'ignore')
-    id2 = other.id.decode('utf8', 'ignore')
-    return cmp(self.id, other.id)
+    #id1 = self.id.__repr__()
+    #id2 = other.id.__repr__()
+    try:
+      return cmp(self.id, other.id)
+    except:
+      # very problematic!!
+      print 'WARNING: can not compare', type(self.id), type(other.id), self.id, other.id
+      return -1
+    #if self.id==other.id: return 0
+    #elif self.id<other.id: return -1
+    #elif self.id>other.id: return 1
+    #else: assert False
 
   # note: will take care of synonyms
   def construct_from_line(self, line):
@@ -353,7 +362,7 @@ class PeopleTiger(ChinaStudy):
 class TianyaMilk(ChinaStudy):
   def config(self):
     self.input_file_encoding = 'GBK'
-    self.src_txt_dir = r'/home/mrzhou/ChinaMedia/tiany-news-5-milk-txt'
+    self.src_txt_dir = r'/home/mrzhou/ChinaMedia/tianya-news-5-milk-txt'
     self.edgeclass = UndirectedEdge
     self.skip_node = skip_nonuserdict_node
     self.skip_edge = skip_w20_edge
@@ -362,13 +371,13 @@ class TianyaMilk(ChinaStudy):
 class TianyaTiger(ChinaStudy):
   def config(self):
     self.input_file_encoding = 'GBK'
-    self.src_txt_dir = r'/home/mrzhou/ChinaMedia/tiany-news-5-tiger-txt'
+    self.src_txt_dir = r'/home/mrzhou/ChinaMedia/tianya-news-5-tiger-txt'
     self.edgeclass = UndirectedEdge
     self.skip_node = skip_nonuserdict_node
     self.skip_edge = skip_w20_edge
 
 
 if __name__ == '__main__':
-  pm = PeopleTiger()
+  pm = TianyaMilk()
   #pm.run()
   pm.reliable_test()
