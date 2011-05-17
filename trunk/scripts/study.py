@@ -2,15 +2,15 @@
 # this is the new script for study after 2011-2
 # this file is encoded in UTF8.
 
-import re, os, tempfile, codecs, traceback, collections, igraph, random, numpy
-from mypytools import read_csv
+import re, os, tempfile, codecs, traceback, collections, igraph, random, numpy, sys, time
+from mypytools import read_csv, save_list_to_file, slice_col
 from scipy.stats.stats import kendalltau
 
 
 term_file_header = ['threadid', 'position', 'term', 'pos']
 
 def generate_synonyms():
-  input = codecs.open('dictionary.txt', 'r', 'utf8')
+  input = open('dictionary.txt', 'r')
   terms = {}
   for line in input:
     line = line.strip()
@@ -59,18 +59,13 @@ class Node:
   def __init__(self, id):
     self.id = id
   def __cmp__(self, other):
-    #id1 = self.id.__repr__()
-    #id2 = other.id.__repr__()
-    try:
-      return cmp(self.id, other.id)
-    except:
-      # very problematic!!
-      print 'WARNING: can not compare', type(self.id), type(other.id), self.id, other.id
-      return -1
-    #if self.id==other.id: return 0
-    #elif self.id<other.id: return -1
-    #elif self.id>other.id: return 1
-    #else: assert False
+    return cmp(self.id, other.id)
+    #try:
+      #return cmp(self.id, other.id)
+    #except:
+      ## very problematic!!
+      #print 'WARNING: can not compare', type(self.id), type(other.id), self.id, other.id
+      #return -1
 
   # note: will take care of synonyms
   def construct_from_line(self, line):
@@ -139,6 +134,7 @@ class ChinaStudy(object):
   the_term = '法律'
   shuffle_percentage = 0.5
   shuffle_repeat = 100
+  shuffle_repeat2 = 1000
   knn_toplist = 100
 
   def config(self):
@@ -160,11 +156,49 @@ class ChinaStudy(object):
       self.output_pajek(edges)
       knn = self.generate_term_knn(self.the_term, self.knn_toplist)
       for other in knn_list:
-        tau = compute_kendall(other, knn)
+        try:
+          tau = compute_kendall(other, knn)
+        except:
+          traceback.print_exc()
+          continue
         print >>out, tau
         results.append(tau)
       knn_list.append(knn)
     print "N, Mean, Std:", len(results), numpy.average(results), numpy.std(results)
+    print "Tau file saved to:", self.tau_file
+    
+  # another version of reliability test
+  def reliable_test2(self):
+    knn_list, results = [], []
+    n, self.tau_file = tempfile.mkstemp(prefix='', suffix='.tau')
+    out = open(self.tau_file, 'w')
+    for i in range(self.shuffle_repeat2):
+      print "Computing round:", i
+      fl_all = os.listdir(self.src_txt_dir)
+      random.shuffle(fl_all)
+      cutpoint = int(len(fl_all)*0.5)
+      fl1 = fl_all[:cutpoint]
+      fl2 = fl_all[cutpoint:]
+      knn1 = self.run_once(fl1)
+      knn2 = self.run_once(fl2)
+      try:
+        tau = compute_kendall(knn1, knn2)
+      except:
+        traceback.print_exc()
+        continue
+      print >>out, tau
+      results.append(tau)
+    print "N, Mean, Std:", len(results), numpy.average(results), numpy.std(results)
+    print "Tau file saved to:", self.tau_file
+
+
+  def run_once(self, file_list):
+    self.output_term_pos(file_list)
+    edges = self.process_term_file()
+    self.output_pajek(edges)
+    knnlist = self.generate_term_knn(self.the_term, self.knn_toplist)
+    return knnlist
+
 
   def manipulate_file_list(self, file_list):
     fl = list(file_list)
@@ -172,10 +206,13 @@ class ChinaStudy(object):
     ml = fl[:int(len(fl)*self.shuffle_percentage)]
     return ml
 
-  def output_term_pos(self):
-    file_list = os.listdir(self.src_txt_dir)
-    file_list = self.manipulate_file_list(file_list)
-    print "Input dir:", self.src_txt_dir, "--", len(file_list)
+  def output_term_pos(self, file_list=None):
+    if file_list == None:
+      file_list = os.listdir(self.src_txt_dir)
+      file_list = self.manipulate_file_list(file_list)
+      print "Input dir:", self.src_txt_dir, "--", len(file_list)
+    else:
+      assert type(file_list) == type([])
     n, list_file = tempfile.mkstemp(prefix='', suffix='.fl')
     fl = open(list_file, 'w')
     for f in file_list:
@@ -291,7 +328,7 @@ class ChinaStudy(object):
     output.close()
 
 
-  def generate_term_knn(self, term, limit=0):
+  def generate_term_knn(self, term, limit=-1):
     g = igraph.read(self.net_file)
     # find the node id or "vertex" object for the term
     v = g.vs.select(id_eq = term)
@@ -316,7 +353,7 @@ class ChinaStudy(object):
     l.sort(cmp=lambda x,y: cmp(x[1],y[1]), reverse=True)
     for t in l:
       limit -= 1
-      if limit == 0: break
+      if limit == -1: break
       knnlist.append((g.vs[t[0]]['id'], t[1]))
       #print "%s\t%d" % (g.vs[t[0]]['id'], t[1])
     return knnlist
@@ -327,17 +364,26 @@ class ChinaStudy(object):
     self.output_term_pos()
     edges = self.process_term_file()
     self.output_pajek(edges)
-    #self.net_file = '/tmp/KX80md.net'
-    knnlist = self.generate_term_knn(self.the_term)
-    #print compute_kendall(knnlist, r)
+    knnlist = self.generate_term_knn(self.the_term, self.knn_toplist)
     return knnlist
+
 
 def compare_datasets(class1, class2):
   knn1 = class1().run()
   knn2 = class2().run()
-  tau = compute_kendall()
+  save_list_to_file(slice_col(knn1, 0), '/tmp/'+class1.__name__+'.knn')
+  save_list_to_file(slice_col(knn2, 0), '/tmp/'+class2.__name__+'.knn')
+  tau = compute_kendall(knn1, knn2)
+  print "Kendall Tau:", tau, "--", class1.__name__, class2.__name__
   
-
+def reliable_test(classname):
+  c = classname()
+  c.reliable_test()
+  
+def reliable_test2(classname):
+  c = classname()
+  c.reliable_test2()
+  
 
 #######################################################################
 
@@ -377,7 +423,27 @@ class TianyaTiger(ChinaStudy):
     self.skip_edge = skip_w20_edge
 
 
+def process_command(debug = True):
+  if debug:
+    starttime = time.time()
+    assert len(sys.argv) == 2, "Please provide one line of python code to execute."
+    py_stmt = sys.argv[1]
+    print "Python statement to execute:", py_stmt
+    eval(py_stmt)
+    endtime = time.time()
+    diff = endtime - starttime
+    print int(diff//3600), 'hours', int((diff%3600)//60), 'minutes', diff%60, 'seconds'
+    #print "Total execution hours:", (endtime-starttime)/3600, 
+  else:
+    #command = sys.argv[1]
+    #args = sys.argv[2:]
+    #eval(command+'('+','.join(args)+')')
+	assert len(sys.argv) == 2, "Please provide one line of python code to execute."
+	eval(sys.argv[1])
+
+
 if __name__ == '__main__':
-  pm = TianyaMilk()
+  #pm = TianyaMilk()
   #pm.run()
-  pm.reliable_test()
+  #pm.reliable_test()
+  process_command()
