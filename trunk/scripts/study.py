@@ -2,9 +2,10 @@
 # this is the new script for study after 2011-2
 # this file is encoded in UTF8.
 
-import re, os, tempfile, codecs, traceback, collections, igraph, random, numpy, sys, time
+import re, os, tempfile, codecs, traceback, collections, igraph, random, numpy, sys, time, csv
 from mypytools import read_csv, save_list_to_file, slice_col
 from scipy.stats.stats import kendalltau
+from randomwalk import pagerank
 
 
 term_file_header = ['threadid', 'position', 'term', 'pos']
@@ -123,6 +124,8 @@ def skip_w20_edge(edge):
   else: return False
 
 
+
+
 class ChinaStudy(object):
   input_file_encoding = 'utf8'
   output_file_encoding = 'utf8'
@@ -145,6 +148,8 @@ class ChinaStudy(object):
     #self.term_pos_file =
     self.config()
 
+
+
   def reliable_test(self):
     knn_list, results = [], []
     n, self.tau_file = tempfile.mkstemp(prefix='', suffix='.tau')
@@ -166,7 +171,9 @@ class ChinaStudy(object):
       knn_list.append(knn)
     print "N, Mean, Std:", len(results), numpy.average(results), numpy.std(results)
     print "Tau file saved to:", self.tau_file
-    
+
+
+
   # another version of reliability test
   def reliable_test2(self):
     knn_list, results = [], []
@@ -192,7 +199,7 @@ class ChinaStudy(object):
     print "Tau file saved to:", self.tau_file
 
 
-  def run_once(self, file_list):
+  def run_once(self, file_list=None):
     self.output_term_pos(file_list)
     edges = self.process_term_file()
     self.output_pajek(edges)
@@ -200,11 +207,14 @@ class ChinaStudy(object):
     return knnlist
 
 
+
   def manipulate_file_list(self, file_list):
     fl = list(file_list)
     random.shuffle(fl)
     ml = fl[:int(len(fl)*self.shuffle_percentage)]
     return ml
+
+
 
   def output_term_pos(self, file_list=None):
     if file_list == None:
@@ -226,6 +236,8 @@ class ChinaStudy(object):
     os.system(cmd)
     #print "finish"
 
+
+  # note: whether the output edges are directed or undirected depends on "edgeclass", which is configured in the derived class.
   def process_term_file(self):
     term_file = self.term_file
     print "processing terms from term file:", term_file
@@ -293,6 +305,8 @@ class ChinaStudy(object):
     return edges
 
 
+
+
   def output_pajek(self, inedges):
     n, self.net_file = tempfile.mkstemp(prefix='', suffix='.net')
     print "generating network file", self.net_file
@@ -328,12 +342,28 @@ class ChinaStudy(object):
     output.close()
 
 
+
+
+
+  def output_pairs(self, inedges):
+    n, self.pair_file = tempfile.mkstemp(prefix='', suffix='.p')
+    output = open(self.pair_file, 'w')
+    print "generating pair file", self.pair_file
+    for edge in inedges.values():
+      if (self.skip_edge)(edge): continue
+      # note: we don't assert whether the edges are duplicate or not
+      print >>output, ','.join([edge.node1.id, edge.node2.id, edge.weight])
+    output.close()
+
+
+
   def generate_term_knn(self, term, limit=-1):
     g = igraph.read(self.net_file)
     # find the node id or "vertex" object for the term
     v = g.vs.select(id_eq = term)
     if len(v) != 1:
       print "can't find term", term
+    # v is the 'term' node in the graph g.
     v = v[0]
     # find the adjacent verteces (neighbor)
     neighbors = g.neighbors(v.index)
@@ -354,6 +384,7 @@ class ChinaStudy(object):
     for t in l:
       limit -= 1
       if limit == -1: break
+      # return this list of (term_name, weight) tuples.
       knnlist.append((g.vs[t[0]]['id'], t[1]))
       #print "%s\t%d" % (g.vs[t[0]]['id'], t[1])
     return knnlist
@@ -366,6 +397,42 @@ class ChinaStudy(object):
     self.output_pajek(edges)
     knnlist = self.generate_term_knn(self.the_term, self.knn_toplist)
     return knnlist
+
+
+class ChinaStudyRandomWalk(ChinaStudy):
+  #Override
+  def run_once(self, file_list=None):
+    self.output_term_pos(file_list)
+    edges = self.process_term_file()
+    self.output_pairs(edges)
+    knnlist = self.generate_term_knn(self.the_term, self.knn_toplist)
+    return knnlist
+
+  #Override
+  def generate_term_knn(self, term, limit=-1):
+    # will use random walk to generate knn list
+    # rw_file is the output of random walk
+    n, self.rw_file = tempfile.mkstemp(prefix='', suffix='.rw')
+    directed = self.edgeclass != UndirectedEdge # note: the dervide class of UndirectedEdge should be taken care of too.
+    pagerank(self.pair_file, self.rw_file, [term], directed)
+
+    rows = []
+    reader = csv.reader(self.rw_file)
+    for row in reader:
+      rows.append(row)
+
+    print "Total neighbors for the term", term, ':', len(rows)
+    rows.sort(cmp=lambda x,y: cmp(x[1],y[1]), reverse=True)
+    if limit == -1:
+      return rows
+    else:
+      return rows[:limit]
+
+
+
+
+#####################################################################
+##### command line processing
 
 
 def compare_datasets(class1, class2):
@@ -383,9 +450,35 @@ def reliable_test(classname):
 def reliable_test2(classname):
   c = classname()
   c.reliable_test2()
-  
+
+def run_once(classname):
+  c = classname()
+  c.run_once()
+
+
+
+def process_command(debug = True):
+  if debug:
+    starttime = time.time()
+    assert len(sys.argv) == 2, "Please provide one line of python code to execute."
+    py_stmt = sys.argv[1]
+    print "Python statement to execute:", py_stmt
+    eval(py_stmt)
+    endtime = time.time()
+    diff = endtime - starttime
+    print int(diff//3600), 'hours', int((diff%3600)//60), 'minutes', diff%60, 'seconds'
+    #print "Total execution hours:", (endtime-starttime)/3600,
+  else:
+    #command = sys.argv[1]
+    #args = sys.argv[2:]
+    #eval(command+'('+','.join(args)+')')
+	assert len(sys.argv) == 2, "Please provide one line of python code to execute."
+	eval(sys.argv[1])
+
+
 
 #######################################################################
+######### derived classes.
 
 class PeopleMilk(ChinaStudy):
   def config(self):
@@ -422,24 +515,7 @@ class TianyaTiger(ChinaStudy):
     self.skip_node = skip_nonuserdict_node
     self.skip_edge = skip_w20_edge
 
-
-def process_command(debug = True):
-  if debug:
-    starttime = time.time()
-    assert len(sys.argv) == 2, "Please provide one line of python code to execute."
-    py_stmt = sys.argv[1]
-    print "Python statement to execute:", py_stmt
-    eval(py_stmt)
-    endtime = time.time()
-    diff = endtime - starttime
-    print int(diff//3600), 'hours', int((diff%3600)//60), 'minutes', diff%60, 'seconds'
-    #print "Total execution hours:", (endtime-starttime)/3600, 
-  else:
-    #command = sys.argv[1]
-    #args = sys.argv[2:]
-    #eval(command+'('+','.join(args)+')')
-	assert len(sys.argv) == 2, "Please provide one line of python code to execute."
-	eval(sys.argv[1])
+class PeopleTigerRW(PeopleTiger, ChinaStudyRandomWalk): pass
 
 
 if __name__ == '__main__':
