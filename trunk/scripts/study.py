@@ -175,6 +175,7 @@ class ChinaStudy(object):
       knn_list.append(knn)
     print "N, Mean, Std:", len(results), numpy.average(results), numpy.std(results)
     print "Tau file saved to:", self.tau_file
+    out.close()
 
 
 
@@ -203,6 +204,7 @@ class ChinaStudy(object):
       results.append(tau)
     print "N, Mean, Std:", len(results), numpy.average(results), numpy.std(results)
     print "Tau file saved to:", self.tau_file
+    out.close()
 
 
   # this is for the purpose of reliability test
@@ -293,6 +295,7 @@ class ChinaStudy(object):
             break
         window.append(node)
     edgeout.close()
+    term_file.close()
 
     # finish processing the lines in the term file. remove skippable edges
     print "FINISH generating the edges. Filtering skippable edges"
@@ -303,6 +306,7 @@ class ChinaStudy(object):
       line = line.strip()
       alledges[line] += 1
     # TODO: weight calc is problematic here
+    edgein.close()
     for k, v in alledges.items():
       n1, n2, w = k.split(',')
       edge = (self.edgeclass)((self.nodeclass)(n1), (self.nodeclass)(n2))
@@ -426,6 +430,7 @@ class ChinaStudyRandomWalk(ChinaStudy):
       if len(row) == 0: continue
       elif len(row) != 2: assert False, str(row)
       rows.append((row[0], float(row[1])))
+    reader.close()
 
     print "Total neighbors for the term", term, ':', len(rows)
     rows.sort(cmp=lambda x,y: cmp(x[1],y[1]), reverse=True)
