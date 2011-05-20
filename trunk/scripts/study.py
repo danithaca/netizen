@@ -3,7 +3,7 @@
 # this file is encoded in UTF8.
 
 import re, os, tempfile, codecs, traceback, collections, igraph, random, numpy, sys, time, csv
-from mypytools import read_csv, save_list_to_file, slice_col
+from mypytools import read_csv, save_list_to_file, slice_col, UnicodeReader
 from scipy.stats.stats import kendalltau
 from randomwalk import pagerank
 
@@ -199,10 +199,11 @@ class ChinaStudy(object):
     print "Tau file saved to:", self.tau_file
 
 
-  def run_once(self, file_list=None):
+  # this is for the purpose of reliability test
+  def run_once(self, file_list):
     self.output_term_pos(file_list)
     edges = self.process_term_file()
-    self.output_pajek(edges)
+    self.output_edges(edges)
     knnlist = self.generate_term_knn(self.the_term, self.knn_toplist)
     return knnlist
 
@@ -305,6 +306,9 @@ class ChinaStudy(object):
     return edges
 
 
+  # this class is to be overriden
+  def output_edges(self, edges):
+    return self.output_pajek(edges)
 
 
   def output_pajek(self, inedges):
@@ -352,7 +356,7 @@ class ChinaStudy(object):
     for edge in inedges.values():
       if (self.skip_edge)(edge): continue
       # note: we don't assert whether the edges are duplicate or not
-      print >>output, ','.join([edge.node1.id, edge.node2.id, edge.weight])
+      print >>output, ','.join([edge.node1.id, edge.node2.id, str(edge.weight)])
     output.close()
 
 
@@ -389,24 +393,20 @@ class ChinaStudy(object):
       #print "%s\t%d" % (g.vs[t[0]]['id'], t[1])
     return knnlist
 
-
+  # this is for general purpose running
   def run(self):
     self.shuffle_percentage = 1.0 # we take all files.
     self.output_term_pos()
     edges = self.process_term_file()
-    self.output_pajek(edges)
+    self.output_edges(edges)
     knnlist = self.generate_term_knn(self.the_term, self.knn_toplist)
     return knnlist
 
 
 class ChinaStudyRandomWalk(ChinaStudy):
   #Override
-  def run_once(self, file_list=None):
-    self.output_term_pos(file_list)
-    edges = self.process_term_file()
-    self.output_pairs(edges)
-    knnlist = self.generate_term_knn(self.the_term, self.knn_toplist)
-    return knnlist
+  def output_edges(self, edges):
+    return self.output_pairs(edges)
 
   #Override
   def generate_term_knn(self, term, limit=-1):
@@ -417,12 +417,17 @@ class ChinaStudyRandomWalk(ChinaStudy):
     pagerank(self.pair_file, self.rw_file, [term], directed)
 
     rows = []
-    reader = csv.reader(self.rw_file)
-    for row in reader:
-      rows.append(row)
+    reader = open(self.rw_file, 'r')
+    for line in reader:
+      row = line.strip().split(',')
+      if len(row) == 0: continue
+      elif len(row) != 2: assert False, str(row)
+      rows.append((row[0], float(row[1])))
 
     print "Total neighbors for the term", term, ':', len(rows)
     rows.sort(cmp=lambda x,y: cmp(x[1],y[1]), reverse=True)
+    assert rows[0][0] == term, 'Random walk returns false result: the top term should be the restart term'
+    del(rows[0])
     if limit == -1:
       return rows
     else:
@@ -451,9 +456,12 @@ def reliable_test2(classname):
   c = classname()
   c.reliable_test2()
 
-def run_once(classname):
+def run(classname):
   c = classname()
-  c.run_once()
+  c.knn_toplist = 10
+  knn = c.run()
+  for t, w in knn:
+    print t, w
 
 
 
