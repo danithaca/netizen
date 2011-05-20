@@ -149,7 +149,8 @@ class ChinaStudy(object):
     self.config()
 
 
-
+  # how it works:
+  # run certain number of times, taking % of files, and compare them pair wise
   def reliable_test(self):
     knn_list, results = [], []
     n, self.tau_file = tempfile.mkstemp(prefix='', suffix='.tau')
@@ -158,7 +159,7 @@ class ChinaStudy(object):
       print "Computing round:", i
       self.output_term_pos()
       edges = self.process_term_file()
-      self.output_pajek(edges)
+      self.output_edges(edges)
       knn = self.generate_term_knn(self.the_term, self.knn_toplist)
       for other in knn_list:
         try:
@@ -175,6 +176,8 @@ class ChinaStudy(object):
 
 
   # another version of reliability test
+  # how it works:
+  # for each run, cut the corpus into halves, and compare the two halves. save the k-tau scores.
   def reliable_test2(self):
     knn_list, results = [], []
     n, self.tau_file = tempfile.mkstemp(prefix='', suffix='.tau')
@@ -523,7 +526,11 @@ class TianyaTiger(ChinaStudy):
     self.skip_node = skip_nonuserdict_node
     self.skip_edge = skip_w20_edge
 
+
+class PeopleMilkRW(PeopleMilk, ChinaStudyRandomWalk): pass
 class PeopleTigerRW(PeopleTiger, ChinaStudyRandomWalk): pass
+class TianyaMilkRW(TianyaMilk, ChinaStudyRandomWalk): pass
+class TianyaTigerRW(TianyaTiger, ChinaStudyRandomWalk): pass
 
 
 if __name__ == '__main__':
