@@ -53,6 +53,9 @@ def compute_kendall(knnx, knny):
   ktau = kendalltau(x, y)
   return ktau[0]
 
+
+
+
 class Node:
   # initialize synonyms for the class
   synonyms = generate_synonyms()
@@ -350,8 +353,6 @@ class ChinaStudy(object):
 
 
 
-
-
   def output_pairs(self, inedges):
     n, self.pair_file = tempfile.mkstemp(prefix='', suffix='.p')
     output = open(self.pair_file, 'w')
@@ -361,7 +362,6 @@ class ChinaStudy(object):
       # note: we don't assert whether the edges are duplicate or not
       print >>output, ','.join([edge.node1.id, edge.node2.id, str(edge.weight)])
     output.close()
-
 
 
   def generate_term_knn(self, term, limit=-1):
@@ -465,6 +465,54 @@ def run(classname):
   knn = c.run()
   for t, w in knn:
     print t, w
+
+
+# compare term rank diff in two networks
+def compare_knn_diff(classname1, classname2, output, knn_cutoff=100):
+
+  def generate_knn(classname):
+    c = classname()
+    # we take 2000, basically means we return all knn. knn_cutoff will control how many terms we care about.
+    c.knn_toplist = 2000
+    return c.run()
+
+  # knn1 is the list of knn from the first network
+  knn1 = generate_knn(classname1)
+  knn1 = [t[0] for t in knn1] # only take the term, not the weight
+  knn1_len = len(knn1)
+  knn2 = generate_knn(classname2)
+  knn2 = [t[0] for t in knn2]
+  knn2_len = len(knn2)
+
+  diff = []  # the rank diff
+  visited = [] # when we compute knn2, we won't bother the terms already visited in knn1.
+
+  for i in range(min(knn1_len, knn_cutoff)):
+    term = knn1[i]
+    if term in knn2:
+      j = knn2.index(term)
+      visited.append(term)
+    else:
+      j = knn2_len
+    diff.append((term, i, j, abs(i-j)))
+
+  for j in range(min(knn2_len, knn_cutoff)):
+    term = knn2[j]
+    if term in visited: continue
+    if term in knn1:
+      i = knn1.index(term)
+    else:
+      i = knn1_len
+    diff.append((term, i, j, abs(i-j)))
+
+  # sorting
+  diff.sort(cmp=lambda x,y: cmp(x[3], y[3]), reverse=True)
+  print "printing difference!"
+  f = open(output, 'w')
+  for d in diff:
+    print '\t'.join(map(str, d))
+    print >>f, '\t'.join(map(str, d))
+  f.close()
 
 
 
