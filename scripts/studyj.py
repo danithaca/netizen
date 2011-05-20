@@ -42,6 +42,7 @@ def output_term_pos(list_file, term_file, input_file_encoding, output_file_encod
       out.write('\t'.join(row)+'\n')
       position += 1
   out.close()
+  fl.close()
   #analyzer.exit()
 
 
