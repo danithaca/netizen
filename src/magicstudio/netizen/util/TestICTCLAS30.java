@@ -22,8 +22,8 @@ class Result {
 public class TestICTCLAS30 {
 
     public static void main(String[] args) throws Exception {
-        //String sInput = " ICTCLAS在国内973专家组组织的评测中活动获得了第一名，在第一届国际中文??处理研究机构SigHan组织的评测中都获得了多项第一名。 ";
-    	String sInput = "--______________________________________";
+        String sInput = " ICTCLAS在国内973专家组组织的评测中活动获得了第一名，在第一届国际中文??处理研究机构SigHan组织的评测中都获得了多项第一名。 ";
+    	//String sInput = "--______________________________________";
         //分词
         //Split(sInput);
 
