@@ -156,7 +156,7 @@ class ChinaStudy(object):
   # run certain number of times, taking % of files, and compare them pair wise
   def reliable_test(self):
     knn_list, results = [], []
-    n, self.tau_file = tempfile.mkstemp(prefix='', suffix='.tau')
+    fd, self.tau_file = tempfile.mkstemp(prefix='', suffix='.tau')
     out = open(self.tau_file, 'w')
     for i in range(self.shuffle_repeat):
       print "Computing round:", i
@@ -176,6 +176,7 @@ class ChinaStudy(object):
     print "N, Mean, Std:", len(results), numpy.average(results), numpy.std(results)
     print "Tau file saved to:", self.tau_file
     out.close()
+    os.close(fd)
 
 
 
@@ -184,7 +185,7 @@ class ChinaStudy(object):
   # for each run, cut the corpus into halves, and compare the two halves. save the k-tau scores.
   def reliable_test2(self):
     knn_list, results = [], []
-    n, self.tau_file = tempfile.mkstemp(prefix='', suffix='.tau')
+    fd, self.tau_file = tempfile.mkstemp(prefix='', suffix='.tau')
     out = open(self.tau_file, 'w')
     for i in range(self.shuffle_repeat2):
       print "Computing round:", i
@@ -205,7 +206,7 @@ class ChinaStudy(object):
     print "N, Mean, Std:", len(results), numpy.average(results), numpy.std(results)
     print "Tau file saved to:", self.tau_file
     out.close()
-
+    os.close(fd)
 
   # this is for the purpose of reliability test
   def run_once(self, file_list):
@@ -232,18 +233,20 @@ class ChinaStudy(object):
       print "Input dir:", self.src_txt_dir, "--", len(file_list)
     else:
       assert type(file_list) == type([])
-    n, list_file = tempfile.mkstemp(prefix='', suffix='.fl')
+    fd, list_file = tempfile.mkstemp(prefix='', suffix='.fl')
     fl = open(list_file, 'w')
     for f in file_list:
       print >>fl, self.src_txt_dir+'/'+f
     fl.close()
-    n, term_file = tempfile.mkstemp(prefix='', suffix='.t')
+    os.close(fd)
+    fd, term_file = tempfile.mkstemp(prefix='', suffix='.t')
     print "Output terms to:", term_file
     self.term_file = term_file
     cmd = "jython studyj.py \"output_term_pos('%s','%s','%s','%s')\"" % (list_file, term_file, self.input_file_encoding, self.output_file_encoding)
     #print cmd
     os.system(cmd)
     #print "finish"
+    os.close(fd)
 
 
   # note: whether the output edges are directed or undirected depends on "edgeclass", which is configured in the derived class.
@@ -256,7 +259,7 @@ class ChinaStudy(object):
     current_threadid = None
     window = []
     # using edgefile as temporary storage for the edges.
-    n, self.edgefile = tempfile.mkstemp(prefix='', suffix='.ed')
+    fd, self.edgefile = tempfile.mkstemp(prefix='', suffix='.ed')
     print "saving temp edge link to:", self.edgefile
     edgeout = open(self.edgefile, 'w')
 
@@ -296,6 +299,7 @@ class ChinaStudy(object):
         window.append(node)
     edgeout.close()
     term_file.close()
+    os.close(fd)
 
     # finish processing the lines in the term file. remove skippable edges
     print "FINISH generating the edges. Filtering skippable edges"
@@ -322,7 +326,7 @@ class ChinaStudy(object):
 
 
   def output_pajek(self, inedges):
-    n, self.net_file = tempfile.mkstemp(prefix='', suffix='.net')
+    fd, self.net_file = tempfile.mkstemp(prefix='', suffix='.net')
     print "generating network file", self.net_file
     nodes = []
     nodesindex = {}
@@ -354,11 +358,11 @@ class ChinaStudy(object):
     for e in edges:
       print >>output, e[0], e[1], e[2]
     output.close()
-
+    os.close(fd)
 
 
   def output_pairs(self, inedges):
-    n, self.pair_file = tempfile.mkstemp(prefix='', suffix='.p')
+    fd, self.pair_file = tempfile.mkstemp(prefix='', suffix='.p')
     output = open(self.pair_file, 'w')
     print "generating pair file", self.pair_file
     for edge in inedges.values():
@@ -366,6 +370,7 @@ class ChinaStudy(object):
       # note: we don't assert whether the edges are duplicate or not
       print >>output, ','.join([edge.node1.id, edge.node2.id, str(edge.weight)])
     output.close()
+    os.close(fd)
 
 
   def generate_term_knn(self, term, limit=-1):
@@ -419,7 +424,7 @@ class ChinaStudyRandomWalk(ChinaStudy):
   def generate_term_knn(self, term, limit=-1):
     # will use random walk to generate knn list
     # rw_file is the output of random walk
-    n, self.rw_file = tempfile.mkstemp(prefix='', suffix='.rw')
+    fd, self.rw_file = tempfile.mkstemp(prefix='', suffix='.rw')
     directed = self.edgeclass != UndirectedEdge # note: the dervide class of UndirectedEdge should be taken care of too.
     pagerank(self.pair_file, self.rw_file, [term], directed)
 
@@ -431,6 +436,7 @@ class ChinaStudyRandomWalk(ChinaStudy):
       elif len(row) != 2: assert False, str(row)
       rows.append((row[0], float(row[1])))
     reader.close()
+    os.close(fd)
 
     print "Total neighbors for the term", term, ':', len(rows)
     rows.sort(cmp=lambda x,y: cmp(x[1],y[1]), reverse=True)
